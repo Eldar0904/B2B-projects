@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PINE — Дэшборд B2B-проектов (прототип)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#101828; --navy-2:#1d2939; --sidebar:#0f1623;
+    --accent:#4f46e5; --accent-light:#eef2ff; --accent-dark:#3730a3;
+    --bg:#f5f6fa; --card:#ffffff; --border:#e5e7eb;
+    --text:#101828; --text-dim:#667085; --text-faint:#98a2b3;
+    --green:#16a34a; --green-bg:#dcfce7;
+    --amber:#d97706; --amber-bg:#fef3c7;
+    --red:#dc2626; --red-bg:#fee2e2;
+    --blue:#2563eb; --blue-bg:#dbeafe;
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
+  a{text-decoration:none;color:inherit;}
+  .app{display:flex;min-height:100vh;}
+
+  /* SIDEBAR */
+  .sidebar{width:240px;background:var(--sidebar);color:#fff;display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;}
+  .sidebar-brand{display:flex;align-items:center;gap:10px;padding:22px 20px;border-bottom:1px solid rgba(255,255,255,0.08);}
+  .brand-mark{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#818cf8);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;}
+  .brand-name{font-weight:700;font-size:15px;line-height:1.2;}
+  .brand-sub{font-size:11px;color:#8a94a6;}
+  .nav{flex:1;padding:14px 12px;overflow-y:auto;}
+  .nav-label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#67708b;padding:14px 10px 6px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#c4cad6;cursor:pointer;font-weight:500;font-size:13.5px;margin-bottom:2px;transition:background .15s;}
+  .nav-item svg{width:17px;height:17px;flex-shrink:0;}
+  .nav-item:hover{background:rgba(255,255,255,0.06);color:#fff;}
+  .nav-item.active{background:var(--accent);color:#fff;}
+  .nav-item.dashed{color:#67708b;border:1px dashed rgba(255,255,255,0.18);}
+  .nav-item.dashed:hover{color:#c4cad6;border-color:rgba(255,255,255,0.32);}
+  .sidebar-foot{padding:14px;border-top:1px solid rgba(255,255,255,0.08);}
+  .user-chip{display:flex;align-items:center;gap:10px;}
+  .avatar{width:32px;height:32px;border-radius:50%;background:#4338ca;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+  .user-meta{line-height:1.25;}
+  .user-name{font-size:13px;font-weight:600;}
+  .user-role{font-size:11px;color:#8a94a6;}
+
+  /* MAIN */
+  .main{margin-left:240px;flex:1;display:flex;flex-direction:column;min-width:0;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;}
+  .page-title{font-size:19px;font-weight:700;}
+  .page-sub{font-size:12.5px;color:var(--text-dim);margin-top:2px;}
+  .topbar-actions{display:flex;align-items:center;gap:10px;}
+  .search-box{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;color:var(--text-faint);width:240px;}
+  .search-box svg{width:15px;height:15px;}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid transparent;cursor:pointer;white-space:nowrap;}
+  .btn svg{width:15px;height:15px;}
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-primary:hover{background:var(--accent-dark);}
+  .btn-ghost{background:#fff;color:var(--text);border:1px solid var(--border);}
+  .btn-ghost:hover{background:var(--bg);}
+  .btn-sm{padding:6px 10px;font-size:12px;}
+
+  .content{padding:24px 28px 60px;flex:1;}
+  .view{display:none;}
+  .view.active{display:block;animation:fade .2s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  /* KPI */
+  .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:24px;}
+  .kpi-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
+  .kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .kpi-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;}
+  .kpi-icon svg{width:16px;height:16px;}
+  .kpi-value{font-size:24px;font-weight:800;line-height:1;}
+  .kpi-label{font-size:12.5px;color:var(--text-dim);margin-top:4px;}
+  .kpi-delta{font-size:11.5px;font-weight:600;margin-top:8px;}
+  .kpi-delta.up{color:var(--green);}
+  .kpi-delta.down{color:var(--red);}
+
+  /* GRID LAYOUT */
+  .grid-2{display:grid;grid-template-columns:2.1fr 1fr;gap:20px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .card-title{font-size:15px;font-weight:700;}
+  .link-sm{font-size:12.5px;color:var(--accent);font-weight:600;cursor:pointer;}
+
+  /* PROJECT ROW (dashboard) */
+  .proj-row{display:flex;align-items:center;gap:14px;padding:14px 6px;border-bottom:1px solid var(--border);cursor:pointer;}
+  .proj-row:last-child{border-bottom:none;}
+  .proj-row:hover{background:var(--bg);border-radius:8px;}
+  .proj-tag{width:40px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+  .proj-info{flex:1;min-width:0;}
+  .proj-name{font-weight:600;font-size:13.5px;}
+  .proj-meta{font-size:12px;color:var(--text-dim);margin-top:2px;}
+  .proj-progress-wrap{width:140px;flex-shrink:0;}
+  .progress-track{height:6px;background:#eef0f3;border-radius:4px;overflow:hidden;}
+  .progress-fill{height:100%;border-radius:4px;}
+  .progress-pct{font-size:11.5px;color:var(--text-dim);margin-top:5px;text-align:right;}
+  .badge{font-size:11px;font-weight:700;padding:4px 9px;border-radius:20px;white-space:nowrap;}
+  .badge-green{background:var(--green-bg);color:var(--green);}
+  .badge-amber{background:var(--amber-bg);color:var(--amber);}
+  .badge-red{background:var(--red-bg);color:var(--red);}
+  .badge-blue{background:var(--blue-bg);color:var(--blue);}
+  .badge-gray{background:#f2f4f7;color:var(--text-dim);}
+
+  /* PROJECTS LIST VIEW */
+  .proj-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+  .proj-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;cursor:pointer;transition:box-shadow .15s,transform .15s;}
+  .proj-card:hover{box-shadow:0 6px 18px rgba(16,24,40,0.08);transform:translateY(-1px);}
+  .proj-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+  .proj-card-name{font-weight:700;font-size:14.5px;line-height:1.3;}
+  .proj-card-loc{font-size:12px;color:var(--text-dim);margin-top:3px;}
+  .proj-card-stats{display:flex;gap:18px;margin-top:14px;font-size:12px;color:var(--text-dim);}
+  .proj-card-stats b{color:var(--text);font-size:13px;display:block;}
+  .role-list{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
+  .role-row{display:flex;align-items:center;gap:10px;padding:5px 0;}
+  .role-row .role-meta{flex:1;min-width:0;}
+  .role-row .role-name{font-size:12.5px;font-weight:600;}
+  .role-row .role-title{font-size:11px;color:var(--text-dim);}
+  .role-row .role-frac{font-size:11.5px;color:var(--text-dim);font-weight:600;flex-shrink:0;}
+  .role-empty{font-size:12px;color:var(--text-faint);padding:10px 0;text-align:center;}
+  .card-footer-row{display:flex;gap:8px;margin-top:14px;}
+  .card-footer-row .btn{flex:1;justify-content:center;}
+
+  /* DETAIL VIEW */
+  .breadcrumb{font-size:12.5px;color:var(--text-dim);margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:6px;}
+  .detail-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;}
+  .detail-title-row{display:flex;align-items:center;gap:10px;}
+  .detail-title{font-size:21px;font-weight:800;}
+  .detail-sub{font-size:12.5px;color:var(--text-dim);margin-top:6px;display:flex;gap:16px;flex-wrap:wrap;}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:20px;}
+  .tab{padding:10px 16px;font-size:13.5px;font-weight:600;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;}
+  .tab.active{color:var(--accent);border-color:var(--accent);}
+
+  .stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+  .stat-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+  .stat-box .v{font-size:18px;font-weight:800;}
+  .stat-box .l{font-size:11.5px;color:var(--text-dim);margin-top:3px;}
+
+  /* TASKS */
+  .kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .kcol{background:#f0f1f5;border-radius:10px;padding:12px;min-height:200px;}
+  .kcol-head{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700;color:var(--text-dim);margin-bottom:10px;padding:0 4px;}
+  .kcol-count{background:#fff;border-radius:10px;padding:1px 7px;font-size:11px;}
+  .tcard{background:#fff;border-radius:8px;padding:11px 12px;margin-bottom:9px;border:1px solid var(--border);cursor:pointer;}
+  .tcard:hover{box-shadow:0 2px 8px rgba(16,24,40,0.07);}
+  .tcard-title{font-size:12.5px;font-weight:600;line-height:1.35;margin-bottom:8px;}
+  .tcard-foot{display:flex;justify-content:space-between;align-items:center;}
+  .tcard-assignee{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);}
+  .mini-avatar{width:20px;height:20px;border-radius:50%;background:var(--accent-light);color:var(--accent-dark);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;}
+  .pill-pri{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;}
+  .pri-high{background:var(--red-bg);color:var(--red);}
+  .pri-med{background:var(--amber-bg);color:var(--amber);}
+  .pri-low{background:#f2f4f7;color:var(--text-dim);}
+
+  /* DOCUMENTS */
+  .doc-table{width:100%;border-collapse:collapse;}
+  .doc-table th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);font-weight:700;padding:10px 12px;border-bottom:1px solid var(--border);}
+  .doc-table td{padding:12px;font-size:13px;border-bottom:1px solid var(--border);}
+  .doc-table tr:hover td{background:var(--bg);}
+  .doc-icon{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+  .doc-name-cell{display:flex;align-items:center;gap:10px;}
+  .icon-btn{width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .icon-btn svg{width:14px;height:14px;color:var(--text-dim);}
+  .icon-btn:hover{background:var(--bg);}
+
+  /* SUPPLIERS / AI */
+  .ai-banner{background:linear-gradient(120deg,#312e81,#4f46e5 60%,#6366f1);border-radius:var(--radius);padding:22px 26px;color:#fff;margin-bottom:22px;display:flex;justify-content:space-between;align-items:center;}
+  .ai-banner h2{margin:0 0 6px;font-size:18px;font-weight:800;}
+  .ai-banner p{margin:0;font-size:13px;color:#e0e7ff;max-width:560px;}
+  .ai-banner-icon{width:54px;height:54px;border-radius:14px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .ai-banner-icon svg{width:26px;height:26px;}
+
+  textarea.import-box{width:100%;min-height:110px;border:1.5px dashed var(--border);border-radius:10px;padding:14px;font-family:'Inter',monospace;font-size:12.5px;resize:vertical;background:var(--bg);}
+  textarea.import-box:focus{outline:none;border-color:var(--accent);background:#fff;}
+
+  .item-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;background:#fff;}
+  .item-row .qty{font-size:11.5px;color:var(--text-dim);background:var(--bg);padding:3px 9px;border-radius:6px;font-weight:600;}
+  .item-row .item-name{font-weight:600;font-size:13px;flex:1;}
+
+  .agent-steps{display:flex;flex-direction:column;gap:10px;margin:18px 0;}
+  .agent-step{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-faint);}
+  .agent-step .dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .agent-step.done .dot{background:var(--green);border-color:var(--green);}
+  .agent-step.done .dot svg{width:10px;height:10px;color:#fff;}
+  .agent-step.active{color:var(--text);font-weight:600;}
+  .agent-step.active .dot{border-color:var(--accent);animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(79,70,229,.35);}50%{box-shadow:0 0 0 5px rgba(79,70,229,.12);}}
+
+  .result-block{border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;}
+  .result-head{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;background:var(--bg);}
+  .result-head b{font-size:13.5px;}
+  .supplier-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:14px 16px;}
+  .supplier-card{border:1px solid var(--border);border-radius:10px;padding:13px;position:relative;}
+  .supplier-card.best{border-color:var(--accent);background:var(--accent-light);}
+  .best-tag{position:absolute;top:-9px;right:10px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;}
+  .supplier-name{font-weight:700;font-size:13px;}
+  .supplier-loc{font-size:11.5px;color:var(--text-dim);margin-top:2px;}
+  .supplier-price{font-size:16px;font-weight:800;margin-top:9px;}
+  .supplier-meta{font-size:11.5px;color:var(--text-dim);margin-top:5px;display:flex;flex-direction:column;gap:2px;}
+  .stars{color:#f59e0b;font-size:11px;margin-top:6px;}
+  .supplier-actions{display:flex;gap:6px;margin-top:10px;}
+
+  .shortlist-bar{position:fixed;bottom:0;left:240px;right:0;background:var(--navy);color:#fff;padding:14px 28px;display:none;align-items:center;justify-content:space-between;z-index:30;}
+  .shortlist-bar.show{display:flex;}
+
+  /* MODULES VIEW */
+  .module-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .module-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
+  .module-card.add{border:1.5px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--text-dim);min-height:150px;cursor:pointer;}
+  .module-card.add:hover{border-color:var(--accent);color:var(--accent);}
+  .module-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+  .toggle{width:38px;height:21px;border-radius:20px;background:var(--border);position:relative;cursor:pointer;flex-shrink:0;}
+  .toggle.on{background:var(--accent);}
+  .toggle::after{content:'';position:absolute;width:17px;height:17px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .15s;}
+  .toggle.on::after{left:19px;}
+
+  /* MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(16,24,40,0.5);display:none;align-items:center;justify-content:center;z-index:100;}
+  .modal-overlay.show{display:flex;}
+  .modal{background:#fff;border-radius:14px;padding:24px;width:420px;max-width:90vw;}
+  .modal h3{margin:0 0 16px;font-size:16px;font-weight:700;}
+  .field{margin-bottom:14px;}
+  .field label{font-size:12px;font-weight:600;color:var(--text-dim);display:block;margin-bottom:5px;}
+  .field input,.field select{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:13px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:200;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.2);}
+  .toast.show{display:flex;align-items:center;gap:8px;animation:fade .2s ease;}
+  .demo-flag{display:inline-block;font-size:10.5px;font-weight:700;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:6px;margin-left:8px;vertical-align:middle;}
+  /* LOGIN */
+  .login-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;}
+  .login-card{width:340px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:32px 28px;box-shadow:0 10px 30px rgba(16,24,40,0.08);}
+  .login-brand{display:flex;align-items:center;gap:10px;margin-bottom:22px;}
+  .login-title{font-size:17px;font-weight:700;margin-bottom:4px;color:var(--text);}
+  .login-sub{font-size:12.5px;color:var(--text-dim);margin-bottom:20px;}
+  .login-field{margin-bottom:14px;}
+  .login-field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;color:var(--text);}
+  .login-field input{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;font-family:inherit;}
+  .login-error{font-size:12.5px;color:var(--red);margin-bottom:10px;min-height:16px;}
+  .login-actions{display:flex;flex-direction:column;gap:8px;margin-top:6px;}
+  .login-toggle{text-align:center;font-size:12.5px;color:var(--text-dim);margin-top:14px;cursor:pointer;}
+  .login-toggle span{color:var(--accent);font-weight:600;}
+</style>
+</head>
+<body>
+
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="brand-mark">PN</div>
+      <div>
+        <div class="brand-name" style="color:var(--text)">PINE</div>
+        <div class="brand-sub">B2B-проекты</div>
+      </div>
+    </div>
+    <div class="login-title" id="loginTitle">Вход</div>
+    <div class="login-sub" id="loginSub">Войдите, чтобы открыть дэшборд проектов.</div>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-field">
+      <label>Email</label>
+      <input type="email" id="loginEmailInput" placeholder="you@pine.kz" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <label>Пароль</label>
+      <input type="password" id="loginPasswordInput" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="login-actions">
+      <button class="btn btn-primary" id="loginSubmitBtn" style="justify-content:center;">Войти</button>
+    </div>
+    <div class="login-toggle" id="loginToggle">Нет аккаунта? <span>Создать</span></div>
+  </div>
+</div>
+
+<div class="app" id="appRoot" style="display:none;">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">PN</div>
+      <div>
+        <div class="brand-name">PINE</div>
+        <div class="brand-sub">Рабочее пространство B2B-проектов</div>
+      </div>
+    </div>
+    <div class="nav">
+      <div class="nav-label">Рабочее пространство</div>
+      <div class="nav-item active" data-view="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Дэшборд
+      </div>
+      <div class="nav-item" data-view="projects">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 12l9 4 9-4"/><path d="M3 17l9 4 9-4"/></svg>
+        Проекты
+      </div>
+      <div class="nav-item" data-view="suppliers">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.6 6.2 6.7.5-5.1 4.4 1.6 6.5L12 16.2 6.2 19.6l1.6-6.5-5.1-4.4 6.7-.5z"/></svg>
+        ИИ-поиск поставщиков <span class="demo-flag" style="margin-left:auto;">AI</span>
+      </div>
+      <div class="nav-label">Рабочее пространство</div>
+      <div class="nav-item" data-view="modules">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        Модули
+      </div>
+      <div class="nav-item dashed" id="addModuleNav">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Добавить модуль…
+      </div>
+    </div>
+    <div class="sidebar-foot">
+      <div class="user-chip">
+        <div class="avatar" id="currentUserAvatar">--</div>
+        <div class="user-meta">
+          <div class="user-name" id="currentUserName">—</div>
+          <div class="user-role" id="currentUserEmail" style="cursor:pointer;" title="Нажмите, чтобы выйти">Выйти</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title" id="pageTitle">Дэшборд</div>
+        <div class="page-sub" id="pageSub">Обзор всех активных проектов по оснащению</div>
+      </div>
+      <div class="topbar-actions">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          Поиск проектов, задач, документов…
+        </div>
+        <button class="btn btn-primary" id="newProjectBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Новый проект
+        </button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ===================== DASHBOARD ===================== -->
+      <div class="view active" id="view-dashboard">
+        <div class="kpi-row">
+          <div class="kpi-card">
+            <div class="kpi-top"><div class="kpi-icon" style="background:var(--blue-bg)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 17l9 4 9-4"/></svg></div></div>
+            <div class="kpi-value" id="kpiProjects">0</div>
+            <div class="kpi-label">Активные проекты</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-top"><div class="kpi-icon" style="background:var(--green-bg)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div></div>
+            <div class="kpi-value" id="kpiOpenTasks">0</div>
+            <div class="kpi-label">Открытые задачи</div>
+            <div class="kpi-delta" id="kpiOpenTasksDelta">0 просрочено</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-top"><div class="kpi-icon" style="background:var(--amber-bg)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div></div>
+            <div class="kpi-value" id="kpiDueWeek">0</div>
+            <div class="kpi-label">Срок на этой неделе</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-top"><div class="kpi-icon" style="background:var(--accent-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M4 19V5M4 5l5 4M4 5l-5 4" transform="translate(8 0)"/><rect x="2" y="3" width="20" height="18" rx="2"/></svg></div></div>
+            <div class="kpi-value" id="kpiBudget">₸0</div>
+            <div class="kpi-label">Общий отслеживаемый бюджет</div>
+            <div class="kpi-delta" id="kpiBudgetDelta">0% освоено</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-top"><div class="kpi-icon" style="background:#ede9fe"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><path d="M12 2l2.6 6.2 6.7.5-5.1 4.4 1.6 6.5L12 16.2 6.2 19.6l1.6-6.5-5.1-4.4 6.7-.5z"/></svg></div></div>
+            <div class="kpi-value" id="kpiSupplierRuns">0</div>
+            <div class="kpi-label">Запущено поисков поставщиков</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Активные проекты</div>
+            <span class="link-sm" data-view-link="projects">Все проекты →</span>
+          </div>
+          <div id="dashProjectList"></div>
+        </div>
+      </div>
+
+      <!-- ===================== PROJECTS LIST ===================== -->
+      <div class="view" id="view-projects">
+        <div class="proj-cards" id="projectCards"></div>
+      </div>
+
+      <!-- ===================== PROJECT DETAIL ===================== -->
+      <div class="view" id="view-detail">
+        <div class="breadcrumb" data-view-link="projects">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+          Все проекты
+        </div>
+        <div class="detail-head">
+          <div>
+            <div class="detail-title-row">
+              <div class="detail-title" id="detailName">—</div>
+            </div>
+            <div class="detail-sub" id="detailSub"></div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost" id="detailDocsBtn">Документы</button>
+            <button class="btn btn-primary" id="detailAddTaskBtn">+ Добавить задачу</button>
+          </div>
+        </div>
+
+        <div class="stat-strip" id="detailStats"></div>
+
+        <div class="tabs">
+          <div class="tab active" data-tab="tasks">Задачи</div>
+          <div class="tab" data-tab="documents">Документы</div>
+          <div class="tab" data-tab="procurement">Закупки / ИИ-поиск поставщиков</div>
+          <div class="tab" data-tab="overview">Обзор</div>
+        </div>
+
+        <div id="tab-tasks">
+          <div class="kanban" id="kanbanBoard"></div>
+        </div>
+
+        <div id="tab-documents" style="display:none;">
+          <div class="card-head">
+            <div class="card-title">Реестр документов</div>
+            <button class="btn btn-primary btn-sm" id="uploadDocBtn">+ Загрузить документ</button>
+          </div>
+          <table class="doc-table">
+            <thead><tr><th>Документ</th><th>Категория</th><th>Загрузил</th><th>Дата</th><th>Размер</th><th></th></tr></thead>
+            <tbody id="docTableBody"></tbody>
+          </table>
+        </div>
+
+        <div id="tab-procurement" style="display:none;">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:8px;">Запустить поиск поставщиков для этого проекта</div>
+            <p style="color:var(--text-dim);font-size:12.5px;margin:0 0 14px;">Импортируйте список позиций для <b id="procProjName"></b>, и ИИ-агент автоматически найдёт и ранжирует поставщиков.</p>
+            <button class="btn btn-primary" data-view-link="suppliers">Открыть ИИ-поиск поставщиков →</button>
+          </div>
+        </div>
+
+        <div id="tab-overview" style="display:none;">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title" style="margin-bottom:14px;">Информация о проекте</div>
+              <div id="overviewInfo" style="font-size:13px;line-height:2.1;color:var(--text-dim);"></div>
+            </div>
+            <div class="card">
+              <div class="card-title" style="margin-bottom:14px;">Освоение бюджета</div>
+              <div class="progress-track" style="height:10px;margin-bottom:8px;"><div class="progress-fill" id="budgetFill" style="background:var(--accent);"></div></div>
+              <div id="budgetText" style="font-size:13px;color:var(--text-dim);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== SUPPLIER AI ===================== -->
+      <div class="view" id="view-suppliers">
+        <div class="ai-banner">
+          <div>
+            <h2>Агентный поиск поставщиков</h2>
+            <p>Вставьте или импортируйте список позиций — агент разбирает каждую строку, ищет в интернете подходящих поставщиков и возвращает ранжированный шортлист с ценами, сроками поставки и ссылками на источники.</p>
+          </div>
+          <div class="ai-banner-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2l2.6 6.2 6.7.5-5.1 4.4 1.6 6.5L12 16.2 6.2 19.6l1.6-6.5-5.1-4.4 6.7-.5z"/></svg></div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-head">
+            <div class="card-title">1. Импорт списка позиций</div>
+            <div style="display:flex;gap:8px;">
+              <select id="procProjectSelect" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;"></select>
+              <button class="btn btn-ghost btn-sm" id="loadSampleBtn">Загрузить пример списка</button>
+            </div>
+          </div>
+          <textarea class="import-box" id="importBox" placeholder="Одна позиция на строку, например:&#10;Школьные парты (2-местные) x120&#10;Стулья для класса x240&#10;Интерактивные доски 75" x15"></textarea>
+          <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+            <button class="btn btn-primary" id="parseItemsBtn">Разобрать позиции →</button>
+          </div>
+        </div>
+
+        <div class="card" id="itemsCard" style="display:none;margin-bottom:20px;">
+          <div class="card-head">
+            <div class="card-title">2. Подтверждение позиций</div>
+            <button class="btn btn-primary" id="runAgentBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.6 6.2 6.7.5-5.1 4.4 1.6 6.5L12 16.2 6.2 19.6l1.6-6.5-5.1-4.4 6.7-.5z"/></svg>
+              Найти поставщиков с ИИ
+            </button>
+          </div>
+          <div id="itemsList"></div>
+        </div>
+
+        <div class="card" id="agentCard" style="display:none;margin-bottom:20px;">
+          <div class="card-title" style="margin-bottom:4px;">3. Работа агента</div>
+          <div class="agent-steps" id="agentSteps"></div>
+        </div>
+
+        <div id="resultsWrap"></div>
+      </div>
+
+      <!-- ===================== MODULES ===================== -->
+      <div class="view" id="view-modules">
+        <p style="color:var(--text-dim);font-size:13px;margin-bottom:18px;max-width:600px;">PINE создан, чтобы расти вместе с вашей командой. Каждый модуль ниже работает независимо — включайте существующие или добавляйте новые (например, «Бюджетирование», «Отчётность», «Осмотры объектов», «Портал клиента») без нарушения текущих данных.</p>
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-icon" style="background:var(--blue-bg)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" width="18" height="18"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/></svg></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <b>Дэшборд</b><div class="toggle on"></div>
+            </div>
+            <p style="font-size:12px;color:var(--text-dim);margin:8px 0 0;">KPI и обзор хода работ по всем проектам.</p>
+          </div>
+          <div class="module-card">
+            <div class="module-icon" style="background:var(--green-bg)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" width="18" height="18"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <b>Задачи</b><div class="toggle on"></div>
+            </div>
+            <p style="font-size:12px;color:var(--text-dim);margin:8px 0 0;">Канбан-доска задач по каждому проекту.</p>
+          </div>
+          <div class="module-card">
+            <div class="module-icon" style="background:var(--amber-bg)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" width="18" height="18"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <b>Документы</b><div class="toggle on"></div>
+            </div>
+            <p style="font-size:12px;color:var(--text-dim);margin:8px 0 0;">Реестр документов по каждому проекту.</p>
+          </div>
+          <div class="module-card">
+            <div class="module-icon" style="background:#ede9fe"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" width="18" height="18"><path d="M12 2l2.6 6.2 6.7.5-5.1 4.4 1.6 6.5L12 16.2 6.2 19.6l1.6-6.5-5.1-4.4 6.7-.5z"/></svg></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <b>ИИ-поиск поставщиков</b><div class="toggle on"></div>
+            </div>
+            <p style="font-size:12px;color:var(--text-dim);margin:8px 0 0;">Агентный веб-поиск поставщиков.</p>
+          </div>
+          <div class="module-card" style="opacity:.6;">
+            <div class="module-icon" style="background:#f2f4f7"><svg viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" width="18" height="18"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <b>Бюджетирование и затраты</b><div class="toggle"></div>
+            </div>
+            <p style="font-size:12px;color:var(--text-dim);margin:8px 0 0;">В планах — заказы на закупку, накладные, затраты до завершения.</p>
+          </div>
+          <div class="module-card" style="opacity:.6;">
+            <div class="module-icon" style="background:#f2f4f7"><svg viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" width="18" height="18"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <b>Отчётность</b><div class="toggle"></div>
+            </div>
+            <p style="font-size:12px;color:var(--text-dim);margin:8px 0 0;">В планах — экспортируемые отчёты для клиентов и руководства.</p>
+          </div>
+          <div class="module-card add" id="addModuleCard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24" style="margin-bottom:6px;"><path d="M12 5v14M5 12h14"/></svg>
+            <b>Добавить новый модуль</b>
+            <span style="font-size:11.5px;margin-top:3px;">Осмотры объектов, портал клиента, автопарк/логистика…</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- TASK MODAL -->
+<div class="modal-overlay" id="taskModalOverlay">
+  <div class="modal">
+    <h3>Добавить задачу</h3>
+    <div class="field"><label>Название</label><input id="taskTitleInput" placeholder="например, Подтвердить дату доставки интерактивной доски"></div>
+    <div class="field"><label>Исполнитель</label>
+      <select id="taskAssigneeInput"></select>
+    </div>
+    <div class="field"><label>Срок выполнения</label><input type="date" id="taskDueInput" value="2026-07-01"></div>
+    <div class="field"><label>Приоритет</label>
+      <select id="taskPriorityInput"><option>Средний</option><option>Высокий</option><option>Низкий</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="taskModalCancel">Отмена</button>
+      <button class="btn btn-primary" id="taskModalSave">Добавить задачу</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD PROJECT MODAL -->
+<div class="modal-overlay" id="projectModalOverlay">
+  <div class="modal">
+    <h3>Добавить проект</h3>
+    <div class="field"><label>Название проекта / здания</label><input id="projNameInput" placeholder="например, Детский сад №7 в Караганде — Оснащение"></div>
+    <div class="field"><label>Тип проекта (необязательно, свободный текст)</label><input id="projTypeInput" placeholder="например, Школа, Детский сад, Университет"></div>
+    <div class="field"><label>Местоположение</label><input id="projLocationInput" placeholder="Город"></div>
+    <div class="field"><label>Клиент</label><input id="projClientInput" placeholder="Название клиента"></div>
+    <div class="field"><label>Руководитель проекта</label>
+      <select id="projManagerInput"></select>
+    </div>
+    <div class="field"><label>Бюджет (₸)</label><input id="projBudgetInput" type="number" placeholder="например, 55000000"></div>
+    <div class="field"><label>Дата начала</label><input type="date" id="projStartInput"></div>
+    <div class="field"><label>Плановая дата завершения</label><input type="date" id="projEndInput"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="projectModalCancel">Отмена</button>
+      <button class="btn btn-primary" id="projectModalSave">Добавить проект</button>
+    </div>
+  </div>
+</div>
+
+<div class="shortlist-bar" id="shortlistBar">
+  <div><b id="shortlistCount">0</b> поставщиков в шортлисте</div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn btn-ghost" id="clearShortlistBtn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.3);">Очистить</button>
+    <button class="btn btn-primary" id="sendProcurementBtn">Отправить в закупки →</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* ===================== FIREBASE ===================== */
+/* Замените apiKey / messagingSenderId / appId на значения из
+   Firebase Console → Project settings → General → "Your apps" → SDK config. */
+const firebaseConfig = {
+  apiKey: "AIzaSyA0J4Jc-vDddsTjbo7zyaBZMfBy_PcgAEA",
+  authDomain: "b2b-projects-a7f51.firebaseapp.com",
+  databaseURL: "https://b2b-projects-a7f51-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "b2b-projects-a7f51",
+  storageBucket: "b2b-projects-a7f51.firebasestorage.app",
+  messagingSenderId: "911134156378",
+  appId: "1:911134156378:web:9fb74df7b68d8214195a63",
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+/* ===================== DATA ===================== */
+const TYPE_ICON = { 'Школа':'🏫', 'Детский сад':'🧸', 'Университет':'🎓', 'Музыкальная школа':'🎵' };
+const TYPE_COLOR = { 'Школа':'#dbeafe', 'Детский сад':'#fce7f3', 'Университет':'#ede9fe', 'Музыкальная школа':'#fef3c7' };
+const DEFAULT_TYPE_ICON = '🏢';
+const DEFAULT_TYPE_COLOR = '#eef2ff';
+const TODAY = new Date('2026-06-22T00:00:00');
+
+const TEAM = {
+  'А. Беков': 'Руководитель закупок',
+  'Д. Нурланова': 'Руководитель объекта',
+  'Т. Исмагулов': 'Руководитель проекта',
+  'С. Рахимова': 'Руководитель документации',
+  'М. Тлеулин': 'Руководитель монтажа',
+};
+
+/* Эти три массива теперь живут в Firestore и заполняются через onSnapshot
+   (см. startRealtimeListeners ниже). Здесь — только локальные зеркала. */
+let projects = [];
+let tasks = [];
+let documents = [];
+
+/* Данные для разовой инициализации Firestore при первом запуске (см. seedInitialDataIfNeeded) */
+const SEED_PROJECT = { name:'Детская музыкальная школа — комплексное оснащение', type:'Музыкальная школа', location:'Казахстан (уточняется)', client:'Уточняется', progress:5, budget:0, spent:0, manager:'А. Беков', start:'2026-06-23', end:'2027-06-30', note:'Здание ~230 помещений. Полностью просчитаны и подтверждены поставщиками: Эстрада (×6 каб., ≈29.8 млн ₸) и Малый актовый зал им. Д. Тезекбаева на 81 место (≈25.6 млн ₸). Бюджет оставлен на 0 до завершения полной ведомости объёмов (ВОР) по всему зданию.' };
+const SEED_TASKS = [
+  { title:'Подтвердить реальные данные проекта (заказчик, адрес, бюджет, сроки)', assignee:'А. Беков', due:'2026-06-26', status:'К выполнению', priority:'Высокий' },
+  { title:'Эстрада (×6 каб.) — запросить финальные КП у audio-pro.kz, stepline.kz, itc-audio.kz', assignee:'А. Беков', due:'2026-06-30', status:'В работе', priority:'Высокий' },
+  { title:'Малый актовый зал (Тезекбаева) — запросить КП на рояль у Ymusic.kz / Pianos.kz', assignee:'А. Беков', due:'2026-07-03', status:'К выполнению', priority:'Высокий' },
+  { title:'Сверить кресла зрительного зала — подтвердить партию и сроки у satu.kz («Соло Вуд»)', assignee:'Д. Нурланова', due:'2026-07-05', status:'К выполнению', priority:'Средний' },
+  { title:'Загрузить сводный отчёт поставщиков (xlsx) в документы проекта', assignee:'С. Рахимова', due:'2026-06-23', status:'Готово', priority:'Низкий' },
+  { title:'Спланировать просчёт следующих помещений здания (~228 оставшихся)', assignee:'Т. Исмагулов', due:'2026-07-15', status:'К выполнению', priority:'Средний' },
+];
+const SEED_DOC = { name:'Поставщики_по_кабинетам.xlsx — Эстрада + Тезекбаева', category:'Спецификация', by:'А. Беков', date:'2026-06-23', size:'29 КБ' };
+
+let currentProjectId = null;
+let supplierRunsCount = 0;
+
+/* ===================== NAV ===================== */
+const views = ['dashboard','projects','detail','suppliers','modules'];
+function showView(name){
+  views.forEach(v=>document.getElementById('view-'+v).classList.toggle('active', v===name));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===name));
+  const titles = {
+    dashboard:['Дэшборд','Обзор всех активных проектов по оснащению'],
+    projects:['Проекты','Каждый проект оснащения — добавляйте задачи, назначайте команду, следите за прогрессом'],
+    detail:['Детали проекта','Задачи, документы и закупки по этому проекту'],
+    suppliers:['ИИ-поиск поставщиков','Импортируйте позиции → агент находит и ранжирует поставщиков'],
+    modules:['Модули','Управляйте активными модулями и добавляйте новые возможности'],
+  };
+  document.getElementById('pageTitle').textContent = titles[name][0];
+  document.getElementById('pageSub').textContent = titles[name][1];
+  document.getElementById('shortlistBar').classList.toggle('show', name==='suppliers' && shortlist.length>0);
+}
+document.querySelectorAll('.nav-item[data-view]').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    showView(el.dataset.view);
+    if(el.dataset.view==='projects') renderProjectCards();
+    if(el.dataset.view==='dashboard') renderDashboard();
+  });
+});
+document.body.addEventListener('click', e=>{
+  const link = e.target.closest('[data-view-link]');
+  if(link){ showView(link.dataset.viewLink); if(link.dataset.viewLink==='projects') renderProjectCards(); }
+});
+document.getElementById('addModuleNav').addEventListener('click', ()=>showView('modules'));
+document.getElementById('addModuleCard').addEventListener('click', ()=>showToast('Здесь открылся бы процесс «Создать модуль» — пока заглушка.'));
+document.getElementById('newProjectBtn').addEventListener('click', ()=>openProjectModal());
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+/* ===================== DASHBOARD ===================== */
+function renderKPIs(){
+  const openTasks = tasks.filter(t=>t.status!=='Готово');
+  const overdue = openTasks.filter(t=>new Date(t.due+'T00:00:00') < TODAY).length;
+  const dueWeek = openTasks.filter(t=>{
+    const diff = (new Date(t.due+'T00:00:00') - TODAY)/86400000;
+    return diff>=0 && diff<=7;
+  }).length;
+  const totalBudget = projects.reduce((s,p)=>s+p.budget,0);
+  const totalSpent = projects.reduce((s,p)=>s+p.spent,0);
+  const util = totalBudget ? Math.round(totalSpent/totalBudget*100) : 0;
+
+  document.getElementById('kpiProjects').textContent = projects.length;
+  document.getElementById('kpiOpenTasks').textContent = openTasks.length;
+  document.getElementById('kpiOpenTasksDelta').textContent = overdue+' просрочено';
+  document.getElementById('kpiDueWeek').textContent = dueWeek;
+  document.getElementById('kpiBudget').textContent = '₸'+(totalBudget/1e6).toFixed(1)+'млн';
+  document.getElementById('kpiBudgetDelta').textContent = util+'% освоено';
+  document.getElementById('kpiSupplierRuns').textContent = supplierRunsCount;
+}
+function renderDashboard(){
+  renderKPIs();
+  const list = document.getElementById('dashProjectList');
+  list.innerHTML = projects.map(p=>{
+    return `<div class="proj-row" data-open="${p.id}">
+      <div class="proj-tag" style="background:${TYPE_COLOR[p.type]||DEFAULT_TYPE_COLOR}">${TYPE_ICON[p.type]||DEFAULT_TYPE_ICON}</div>
+      <div class="proj-info">
+        <div class="proj-name">${p.name}</div>
+        <div class="proj-meta">${p.type||'Проект'} · ${p.location||'—'} · срок ${fmtDate(p.end)}</div>
+      </div>
+      <div class="proj-progress-wrap">
+        <div class="progress-track"><div class="progress-fill" style="width:${p.progress}%;background:var(--accent)"></div></div>
+        <div class="progress-pct">${p.progress}% завершено</div>
+      </div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click', ()=>openProject(el.dataset.open)));
+}
+
+/* ===================== PROJECTS LIST ===================== */
+function roleBreakdownHTML(projectId){
+  const pTasks = tasks.filter(t=>t.projectId===projectId);
+  if(pTasks.length===0){
+    return `<div class="role-empty">Пока нет задач — добавьте первую ниже.</div>`;
+  }
+  const byAssignee = {};
+  pTasks.forEach(t=>{
+    if(!byAssignee[t.assignee]) byAssignee[t.assignee] = {done:0, total:0};
+    byAssignee[t.assignee].total++;
+    if(t.status==='Готово') byAssignee[t.assignee].done++;
+  });
+  return Object.entries(byAssignee).map(([name,c])=>`
+    <div class="role-row">
+      <div class="mini-avatar">${initials(name)}</div>
+      <div class="role-meta">
+        <div class="role-name">${name}</div>
+        <div class="role-title">${TEAM[name] || 'Участник команды'}</div>
+      </div>
+      <div class="role-frac">${c.done}/${c.total} готово</div>
+    </div>`).join('');
+}
+function renderProjectCards(){
+  const wrap = document.getElementById('projectCards');
+  wrap.innerHTML = projects.map(p=>{
+    const doneTasks = tasks.filter(t=>t.projectId===p.id && t.status==='Готово').length;
+    const totalTasks = tasks.filter(t=>t.projectId===p.id).length;
+    return `<div class="proj-card" data-open="${p.id}">
+      <div class="proj-card-top">
+        <div>
+          <div class="proj-card-name">${TYPE_ICON[p.type]||DEFAULT_TYPE_ICON} ${p.name}</div>
+          <div class="proj-card-loc">${p.location||'—'}${p.client?' · '+p.client:''}</div>
+        </div>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:${p.progress}%;background:var(--accent)"></div></div>
+      <div class="proj-card-stats">
+        <div><b>${p.progress}%</b>завершено</div>
+        <div><b>${doneTasks}/${totalTasks}</b>задач готово</div>
+        <div><b>₸${(p.budget/1e6).toFixed(1)}млн.</b>бюджет</div>
+        <div><b>${fmtDate(p.end)}</b>срок</div>
+      </div>
+      <div class="role-list">${roleBreakdownHTML(p.id)}</div>
+      <div class="card-footer-row">
+        <button class="btn btn-ghost btn-sm" data-quickadd="${p.id}">+ Добавить задачу</button>
+        <button class="btn btn-primary btn-sm" data-open-detail="${p.id}">Открыть проект →</button>
+      </div>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click', e=>{
+    if(e.target.closest('[data-quickadd]') || e.target.closest('[data-open-detail]')) return;
+    openProject(el.dataset.open);
+  }));
+  wrap.querySelectorAll('[data-open-detail]').forEach(el=>el.addEventListener('click', e=>{
+    e.stopPropagation();
+    openProject(el.dataset.openDetail);
+  }));
+  wrap.querySelectorAll('[data-quickadd]').forEach(el=>el.addEventListener('click', e=>{
+    e.stopPropagation();
+    currentProjectId = el.dataset.quickadd;
+    openTaskModal();
+  }));
+}
+
+/* ===================== PROJECT DETAIL ===================== */
+function renderDetailStats(id){
+  const p = projects.find(x=>x.id===id);
+  const pTasks = tasks.filter(t=>t.projectId===id);
+  const pDocs = documents.filter(d=>d.projectId===id);
+  document.getElementById('detailStats').innerHTML = `
+    <div class="stat-box"><div class="v">${p.progress}%</div><div class="l">Прогресс</div></div>
+    <div class="stat-box"><div class="v">${pTasks.length}</div><div class="l">Всего задач</div></div>
+    <div class="stat-box"><div class="v">${pDocs.length}</div><div class="l">Документов в деле</div></div>
+    <div class="stat-box"><div class="v">₸${(p.budget-p.spent).toLocaleString('ru-RU')}</div><div class="l">Остаток бюджета</div></div>
+  `;
+}
+function openProject(id){
+  currentProjectId = id;
+  const p = projects.find(x=>x.id===id);
+  document.getElementById('detailName').textContent = `${TYPE_ICON[p.type]||DEFAULT_TYPE_ICON} ${p.name}`;
+  document.getElementById('detailSub').innerHTML = `<span>${p.type||'Project'} · ${p.location||'—'}</span><span>Client: ${p.client||'—'}</span><span>Manager: ${p.manager||'—'}</span><span>${fmtDate(p.start)} → ${fmtDate(p.end)}</span>`;
+
+  renderDetailStats(id);
+  renderKanban(id);
+  renderDocs(id);
+  document.getElementById('procProjName').textContent = p.name;
+  document.getElementById('overviewInfo').innerHTML = `
+    Тип: <b style="color:var(--text)">${p.type||'—'}</b><br>
+    Местоположение: <b style="color:var(--text)">${p.location||'—'}</b><br>
+    Клиент: <b style="color:var(--text)">${p.client||'—'}</b><br>
+    Руководитель проекта: <b style="color:var(--text)">${p.manager||'—'}</b><br>
+    Сроки: <b style="color:var(--text)">${fmtDate(p.start)} – ${fmtDate(p.end)}</b><br>
+    Бюджет: <b style="color:var(--text)">₸${p.budget.toLocaleString('ru-RU')}</b>${p.note?`<br><span style="font-size:12px;color:var(--text-dim);">${p.note}</span>`:''}
+  `;
+  const pct = p.budget ? Math.round(p.spent/p.budget*100) : 0;
+  document.getElementById('budgetFill').style.width = pct+'%';
+  document.getElementById('budgetText').textContent = `₸${p.spent.toLocaleString('ru-RU')} освоено из ₸${p.budget.toLocaleString('ru-RU')} (${pct}%)`;
+
+  switchTab('tasks');
+  showView('detail');
+}
+document.getElementById('detailDocsBtn').addEventListener('click', ()=>switchTab('documents'));
+document.getElementById('detailAddTaskBtn').addEventListener('click', ()=>openTaskModal());
+
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>switchTab(t.dataset.tab)));
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  ['tasks','documents','procurement','overview'].forEach(n=>{
+    document.getElementById('tab-'+n).style.display = (n===name)?'block':'none';
+  });
+}
+
+const KSTATUS = ['К выполнению','В работе','Заблокировано','Готово'];
+function renderKanban(projectId){
+  const board = document.getElementById('kanbanBoard');
+  board.innerHTML = KSTATUS.map(status=>{
+    const items = tasks.filter(t=>t.projectId===projectId && t.status===status);
+    return `<div class="kcol">
+      <div class="kcol-head"><span>${status}</span><span class="kcol-count">${items.length}</span></div>
+      ${items.map(t=>`
+        <div class="tcard">
+          <div class="tcard-title">${t.title}</div>
+          <div class="tcard-foot">
+            <div class="tcard-assignee"><div class="mini-avatar">${initials(t.assignee)}</div>${fmtDate(t.due)}</div>
+            <span class="pill-pri ${t.priority==='Высокий'?'pri-high':t.priority==='Средний'?'pri-med':'pri-low'}">${t.priority}</span>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function renderDocs(projectId){
+  const docs = documents.filter(d=>d.projectId===projectId);
+  document.getElementById('docTableBody').innerHTML = docs.map(d=>`
+    <tr>
+      <td><div class="doc-name-cell"><div class="doc-icon" style="background:${catColor(d.category)}">${d.name.split('.').pop().toUpperCase().slice(0,3)}</div>${d.name}</div></td>
+      <td><span class="badge badge-gray">${d.category}</span></td>
+      <td>${d.by}</td>
+      <td>${fmtDate(d.date)}</td>
+      <td>${d.size}</td>
+      <td><button class="icon-btn" title="Download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 19h16"/></svg></button></td>
+    </tr>`).join('');
+}
+function catColor(cat){
+  const m = {'Контракт':'#dbeafe','План этажа':'#fce7f3','Спецификация':'#ede9fe','Накладная':'#dcfce7','Разрешение':'#fef3c7','Фото':'#f2f4f7','Закупка':'#fee2e2'};
+  return m[cat] || '#f2f4f7';
+}
+document.getElementById('uploadDocBtn').addEventListener('click', ()=>showToast('Здесь открылось бы окно загрузки (drag & drop, автокатегоризация).'));
+
+/* ===================== TASK MODAL ===================== */
+function openTaskModal(){
+  document.getElementById('taskTitleInput').value='';
+  const d = new Date(TODAY); d.setDate(d.getDate()+7);
+  document.getElementById('taskDueInput').value = d.toISOString().slice(0,10);
+  document.getElementById('taskModalOverlay').classList.add('show');
+}
+function closeTaskModal(){ document.getElementById('taskModalOverlay').classList.remove('show'); }
+document.getElementById('taskModalCancel').addEventListener('click', closeTaskModal);
+document.getElementById('taskModalSave').addEventListener('click', ()=>{
+  const title = document.getElementById('taskTitleInput').value.trim();
+  if(!title){ showToast('Введите название задачи.'); return; }
+  if(!currentProjectId){ showToast('Сначала выберите проект для этой задачи.'); return; }
+  const newTask = {
+    projectId: currentProjectId,
+    title,
+    assignee: document.getElementById('taskAssigneeInput').value,
+    due: document.getElementById('taskDueInput').value,
+    status:'К выполнению',
+    priority: document.getElementById('taskPriorityInput').value,
+  };
+  db.collection('tasks').add(newTask).then(()=>{
+    document.getElementById('taskTitleInput').value='';
+    closeTaskModal();
+    showToast('Задача добавлена.');
+  }).catch(err=>showToast('Ошибка сохранения задачи: '+err.message));
+});
+
+/* ===================== ADD PROJECT MODAL ===================== */
+const taskAssigneeSelect = document.getElementById('taskAssigneeInput');
+taskAssigneeSelect.innerHTML = Object.keys(TEAM).map(n=>`<option value="${n}">${n} — ${TEAM[n]}</option>`).join('');
+
+const projManagerSelect = document.getElementById('projManagerInput');
+projManagerSelect.innerHTML = Object.keys(TEAM).map(n=>`<option value="${n}">${n} — ${TEAM[n]}</option>`).join('');
+
+function openProjectModal(){ document.getElementById('projectModalOverlay').classList.add('show'); }
+function closeProjectModal(){ document.getElementById('projectModalOverlay').classList.remove('show'); }
+document.getElementById('projectModalCancel').addEventListener('click', closeProjectModal);
+document.getElementById('projectModalSave').addEventListener('click', ()=>{
+  const name = document.getElementById('projNameInput').value.trim();
+  if(!name){ showToast('Введите название проекта или здания.'); return; }
+  const newProj = {
+    name,
+    type: document.getElementById('projTypeInput').value.trim(),
+    location: document.getElementById('projLocationInput').value.trim(),
+    client: document.getElementById('projClientInput').value.trim(),
+    manager: document.getElementById('projManagerInput').value,
+    progress: 0,
+    budget: Number(document.getElementById('projBudgetInput').value) || 0,
+    spent: 0,
+    start: document.getElementById('projStartInput').value || TODAY.toISOString().slice(0,10),
+    end: document.getElementById('projEndInput').value || TODAY.toISOString().slice(0,10),
+  };
+  db.collection('projects').add(newProj).then(()=>{
+    ['projNameInput','projTypeInput','projLocationInput','projClientInput','projBudgetInput','projStartInput','projEndInput'].forEach(id=>document.getElementById(id).value='');
+    closeProjectModal();
+    showToast('Проект добавлен.');
+  }).catch(err=>showToast('Ошибка сохранения проекта: '+err.message));
+});
+
+/* ===================== HELPERS ===================== */
+function fmtDate(d){
+  const dt = new Date(d+'T00:00:00');
+  return dt.toLocaleDateString('ru-RU',{month:'short',day:'numeric',year:'numeric'});
+}
+function initials(name){
+  return name.split(' ').map(p=>p.replace('.','')).join('').slice(0,2).toUpperCase();
+}
+
+/* ===================== AUTH GATE ===================== */
+let unsubProjects=null, unsubTasks=null, unsubDocuments=null;
+
+function showApp(user){
+  document.getElementById('loginOverlay').style.display='none';
+  document.getElementById('appRoot').style.display='flex';
+  document.getElementById('currentUserEmail').textContent = user.email;
+  document.getElementById('currentUserName').textContent = user.email.split('@')[0];
+  document.getElementById('currentUserAvatar').textContent = user.email.slice(0,2).toUpperCase();
+  startRealtimeListeners();
+}
+function showLogin(){
+  document.getElementById('appRoot').style.display='none';
+  document.getElementById('loginOverlay').style.display='flex';
+  document.getElementById('loginEmailInput').value='';
+  document.getElementById('loginPasswordInput').value='';
+  if(unsubProjects){ unsubProjects(); unsubProjects=null; }
+  if(unsubTasks){ unsubTasks(); unsubTasks=null; }
+  if(unsubDocuments){ unsubDocuments(); unsubDocuments=null; }
+}
+
+auth.onAuthStateChanged(user=>{
+  if(user){ showApp(user); } else { showLogin(); }
+});
+
+let loginMode = 'signin';
+document.getElementById('loginToggle').addEventListener('click', ()=>{
+  loginMode = loginMode==='signin' ? 'signup' : 'signin';
+  document.getElementById('loginTitle').textContent = loginMode==='signin' ? 'Вход' : 'Создать аккаунт';
+  document.getElementById('loginSubmitBtn').textContent = loginMode==='signin' ? 'Войти' : 'Создать аккаунт';
+  document.getElementById('loginToggle').innerHTML = loginMode==='signin'
+    ? 'Нет аккаунта? <span>Создать</span>'
+    : 'Уже есть аккаунт? <span>Войти</span>';
+  document.getElementById('loginError').textContent='';
+});
+document.getElementById('loginSubmitBtn').addEventListener('click', ()=>{
+  const email = document.getElementById('loginEmailInput').value.trim();
+  const pass = document.getElementById('loginPasswordInput').value;
+  const errBox = document.getElementById('loginError');
+  errBox.textContent='';
+  if(!email || !pass){ errBox.textContent='Введите email и пароль.'; return; }
+  const action = loginMode==='signin'
+    ? auth.signInWithEmailAndPassword(email, pass)
+    : auth.createUserWithEmailAndPassword(email, pass);
+  action.catch(err=>{ errBox.textContent = err.message; });
+});
+document.getElementById('currentUserEmail').addEventListener('click', ()=>auth.signOut());
+
+/* ===================== FIRESTORE DATA LAYER ===================== */
+function startRealtimeListeners(){
+  seedInitialDataIfNeeded();
+
+  unsubProjects = db.collection('projects').onSnapshot(snap=>{
+    projects = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    renderDashboard();
+    renderProjectCards();
+    refreshProjSelect();
+  }, err=>showToast('Ошибка чтения проектов: '+err.message));
+
+  unsubTasks = db.collection('tasks').onSnapshot(snap=>{
+    tasks = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    renderDashboard();
+    renderProjectCards();
+    if(currentProjectId && document.getElementById('view-detail').classList.contains('active')){
+      renderKanban(currentProjectId);
+      renderDetailStats(currentProjectId);
+    }
+  }, err=>showToast('Ошибка чтения задач: '+err.message));
+
+  unsubDocuments = db.collection('documents').onSnapshot(snap=>{
+    documents = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    if(currentProjectId && document.getElementById('view-detail').classList.contains('active')){
+      renderDocs(currentProjectId);
+    }
+  }, err=>showToast('Ошибка чтения документов: '+err.message));
+}
+
+function seedInitialDataIfNeeded(){
+  db.collection('meta').doc('seedStatus').get().then(doc=>{
+    if(doc.exists) return;
+    const batch = db.batch();
+    const projRef = db.collection('projects').doc();
+    batch.set(projRef, SEED_PROJECT);
+    SEED_TASKS.forEach(t=>{
+      batch.set(db.collection('tasks').doc(), { ...t, projectId: projRef.id });
+    });
+    batch.set(db.collection('documents').doc(), { ...SEED_DOC, projectId: projRef.id });
+    batch.set(db.collection('meta').doc('seedStatus'), { done:true, at:new Date().toISOString() });
+    batch.commit().catch(err=>console.error('Ошибка начальной загрузки данных:', err));
+  });
+}
+</script>
+<script src="supplier-ai.js"></script>
+</body>
+</html>
