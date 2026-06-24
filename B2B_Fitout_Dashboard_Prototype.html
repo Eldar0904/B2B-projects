@@ -314,6 +314,22 @@
         Добавить модуль…
       </div>
     </div>
+    <script>
+      /* Применяем закэшированные настройки модулей сразу, до загрузки Firebase,
+         чтобы пункты меню не "мигали" перед скрытием выключенных модулей. */
+      (function(){
+        try{
+          var cached = JSON.parse(localStorage.getItem('moduleSettings') || '{}');
+          var navKeys = { suppliers:'suppliers', compare:'compare', dashboard:'dashboard' };
+          Object.keys(navKeys).forEach(function(key){
+            if(cached[key] === false){
+              var navEl = document.querySelector('.nav-item[data-view="'+navKeys[key]+'"]');
+              if(navEl) navEl.style.display = 'none';
+            }
+          });
+        }catch(e){}
+      })();
+    </script>
     <div class="sidebar-foot">
       <div class="user-chip">
         <div class="avatar" id="currentUserAvatar">--</div>
@@ -814,6 +830,7 @@ document.querySelectorAll('.module-card .toggle').forEach(toggleEl=>{
 
     if(key){
       moduleSettings[key] = isOn;
+      try{ localStorage.setItem('moduleSettings', JSON.stringify(moduleSettings)); }catch(e){}
       db.collection('meta').doc('moduleSettings').set({ [key]: isOn }, { merge:true })
         .catch(err=>showToast('Ошибка сохранения настроек модуля: '+err.message));
     }
@@ -1292,6 +1309,7 @@ function startRealtimeListeners(){
 
   unsubModuleSettings = db.collection('meta').doc('moduleSettings').onSnapshot(doc=>{
     moduleSettings = doc.exists ? doc.data() : {};
+    try{ localStorage.setItem('moduleSettings', JSON.stringify(moduleSettings)); }catch(e){}
     applyModuleSettings();
   }, err=>showToast('Ошибка чтения настроек модулей: '+err.message));
 }
