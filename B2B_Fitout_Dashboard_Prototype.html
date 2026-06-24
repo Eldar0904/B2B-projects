@@ -776,6 +776,26 @@ document.getElementById('addModuleNav').addEventListener('click', ()=>showView('
 document.getElementById('addModuleCard').addEventListener('click', ()=>showToast('Здесь открылся бы процесс «Создать модуль» — пока заглушка.'));
 
 /* ===================== MODULE TOGGLES ===================== */
+/* Состояние переключателей хранится в Firestore (meta/moduleSettings), поэтому
+   оно не сбрасывается при обновлении страницы и одинаково для всей команды. */
+function applyModuleSettings(){
+  document.querySelectorAll('.module-card[data-module]').forEach(card=>{
+    const key = card.dataset.module;
+    const isOn = moduleSettings[key] !== false; // по умолчанию включено, если нет записи
+    const toggleEl = card.querySelector('.toggle');
+    if(toggleEl) toggleEl.classList.toggle('on', isOn);
+    const navView = card.dataset.navView;
+    if(navView){
+      const navEl = document.querySelector(`.nav-item[data-view="${navView}"]`);
+      if(navEl) navEl.style.display = isOn ? '' : 'none';
+      if(!isOn && document.getElementById('view-'+navView)?.classList.contains('active')){
+        showView('dashboard');
+        renderDashboard();
+      }
+    }
+  });
+}
+
 document.querySelectorAll('.module-card .toggle').forEach(toggleEl=>{
   toggleEl.addEventListener('click', e=>{
     e.stopPropagation();
@@ -787,9 +807,16 @@ document.querySelectorAll('.module-card .toggle').forEach(toggleEl=>{
       return;
     }
 
-    toggleEl.classList.toggle('on');
-    const isOn = toggleEl.classList.contains('on');
+    const isOn = !toggleEl.classList.contains('on');
+    toggleEl.classList.toggle('on', isOn);
     const navView = card.dataset.navView;
+    const key = card.dataset.module;
+
+    if(key){
+      moduleSettings[key] = isOn;
+      db.collection('meta').doc('moduleSettings').set({ [key]: isOn }, { merge:true })
+        .catch(err=>showToast('Ошибка сохранения настроек модуля: '+err.message));
+    }
 
     if(navView){
       const navEl = document.querySelector(`.nav-item[data-view="${navView}"]`);
@@ -800,7 +827,7 @@ document.querySelectorAll('.module-card .toggle').forEach(toggleEl=>{
       }
       showToast(`«${moduleName}» ${isOn ? 'включён' : 'выключен'} — пункт меню ${isOn ? 'показан' : 'скрыт'}.`);
     } else {
-      showToast(`«${moduleName}» ${isOn ? 'включён' : 'выключен'} (демо — этот модуль пока не привязан к отдельному пункту меню).`);
+      showToast(`«${moduleName}» ${isOn ? 'включён' : 'выключен'}.`);
     }
   });
 });
