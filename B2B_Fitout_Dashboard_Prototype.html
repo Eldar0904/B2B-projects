@@ -228,6 +228,10 @@
   .update-entry-title{font-weight:700;font-size:13.5px;}
   .update-entry-meta{font-size:11.5px;color:var(--text-faint);white-space:nowrap;}
   .update-entry-body{font-size:12.5px;color:var(--text-dim);white-space:pre-wrap;line-height:1.6;}
+  .plan-list{margin:0;padding:0;list-style:none;}
+  .plan-list li{font-size:12.5px;color:var(--text-dim);line-height:1.6;padding:8px 0;border-bottom:1px solid var(--border);}
+  .plan-list li:last-child{border-bottom:none;padding-bottom:0;}
+  .plan-list li b{color:var(--text);font-weight:700;}
   /* LOGIN */
   .login-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;}
   .login-card{width:340px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:32px 28px;box-shadow:0 10px 30px rgba(16,24,40,0.08);}
@@ -613,6 +617,49 @@
 
       <!-- ===================== UPDATES / HISTORY ===================== -->
       <div class="view" id="view-updates">
+
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-head" style="margin-bottom:12px;">
+            <div class="card-title">Строим первым — чистая логика, без модели</div>
+          </div>
+          <ul class="plan-list">
+            <li><b>Авто-обновление статуса проекта</b> по активности в задачах — бизнес-правило (все задачи закрыты → проект закрыт).</li>
+            <li><b>Проверка полноты спецификации</b> перед подписанием договора — чек-лист: обязательные категории присутствуют или нет.</li>
+            <li><b>Форматирование документа по стандарту компании</b> — шаблонизатор (генерация Word/docx), без ИИ.</li>
+            <li><b>Авто-сравнение смет/комплектаций</b> и отчёт о расхождениях — сравнение множеств и таблиц.</li>
+            <li><b>Аналитика по объектам</b> (средняя стоимость, динамика цен, топ-позиции) — агрегация данных и графики, модель не нужна.</li>
+            <li><b>Напоминания по дедлайнам</b> — cron + правила.</li>
+            <li><b>Рекомендация типовой комплектации кабинета по ФГОС/СанПиН</b> — после оцифровки стандартов это таблица соответствия «тип кабинета → обязательные позиции», т.е. движок правил, а не ML.</li>
+          </ul>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-head" style="margin-bottom:12px;">
+            <div class="card-title">Строим вторым — классические алгоритмы / локальные модели, без платы за API</div>
+          </div>
+          <ul class="plan-list">
+            <li><b>Нормализация наименований товаров</b> из разных источников — fuzzy-сравнение строк (rapidfuzz) + словарь синонимов.</li>
+            <li><b>Парсинг прайс-листов поставщиков</b> (PDF/Excel) — извлечение таблиц (camelot/tabula, openpyxl) + regex; для структурированных файлов — детерминированно, «грязные» — на ручную проверку.</li>
+            <li><b>Поиск аналогов</b> при отсутствии позиции у поставщика — поиск похожих по структурированным характеристикам (категория, размеры, цена), не генеративно.</li>
+            <li><b>Предсказание риска задержки проекта</b> — табличное ML (логистическая регрессия / gradient boosting) на собственных исторических данных, работает локально, без API. Нужно достаточно истории.</li>
+            <li><b>Голосовой ввод на объекте</b> — локальный Whisper (открытый код), бесплатная и детерминированная транскрипция, без генерации.</li>
+          </ul>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-head" style="margin-bottom:12px;">
+            <div class="card-title">Строим позже — реально нужен LLM</div>
+          </div>
+          <ul class="plan-list">
+            <li><b>Q&A по базе знаний проекта</b> (голос или текст) — retrieval + генерация, классический кейс RAG + LLM.</li>
+            <li><b>ИИ-ассистент закупщика</b> (вопросы по нормативам) — свободные вопросы-ответы по нормативке.</li>
+            <li><b>Черновик дефектного акта</b> по тексту/фото — нужна генерация текста (и зрение — если по фото).</li>
+            <li><b>Черновики писем/уведомлений поставщикам</b> — свободное составление текста; можно начать с шаблонов и перейти на LLM для нюансов позже.</li>
+            <li><b>Распознавание комплектации на фото / фото-контроль поставок</b> — нужна обученная модель компьютерного зрения, самый трудоёмкий пункт списка.</li>
+          </ul>
+          <p style="font-size:11.5px;color:var(--text-faint);margin:12px 0 0;line-height:1.5;">Группа «строим первым» закрывает Этапы 1–2 их дорожной карты (база цен, генерация спецификаций/актов) — то есть реальную ценность можно дать до подключения любого LLM API. Этап 3+ (фото-контроль, Q&A, риск-предсказание) — там, где уже нужны обученные модели или LLM, и дорожная карта это уже предполагает.</p>
+        </div>
+
         <div class="card-head" style="margin-bottom:16px;">
           <div class="card-title">История изменений и решений</div>
           <button class="btn btn-primary btn-sm" id="addUpdateBtn">+ Добавить запись</button>
