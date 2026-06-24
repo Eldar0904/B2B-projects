@@ -139,11 +139,13 @@
 
   /* TASKS */
   .kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
-  .kcol{background:#f0f1f5;border-radius:10px;padding:12px;min-height:200px;}
+  .kcol{background:#f0f1f5;border-radius:10px;padding:12px;min-height:200px;transition:background .12s,outline .12s;}
+  .kcol.drag-over{background:#e4e6f5;outline:2px dashed var(--accent);outline-offset:-2px;}
   .kcol-head{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700;color:var(--text-dim);margin-bottom:10px;padding:0 4px;}
   .kcol-count{background:#fff;border-radius:10px;padding:1px 7px;font-size:11px;}
-  .tcard{background:#fff;border-radius:8px;padding:11px 12px;margin-bottom:9px;border:1px solid var(--border);cursor:pointer;}
+  .tcard{background:#fff;border-radius:8px;padding:11px 12px;margin-bottom:9px;border:1px solid var(--border);cursor:grab;}
   .tcard:hover{box-shadow:0 2px 8px rgba(16,24,40,0.07);}
+  .tcard.dragging{opacity:.4;}
   .tcard-title{font-size:12.5px;font-weight:600;line-height:1.35;margin-bottom:8px;}
   .tcard-foot{display:flex;justify-content:space-between;align-items:center;}
   .tcard-assignee{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);}
@@ -230,6 +232,11 @@
   .tag-chip button{background:none;border:none;color:var(--accent);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;}
   .tag-select-add{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
   .tag-select-add select,.tag-select-add input{flex:1 1 120px;width:auto;padding:7px 9px;border:1px solid var(--border);border-radius:7px;font-size:12.5px;font-family:inherit;}
+  .stage-stepper{display:flex;gap:4px;}
+  .stage-stepper .seg{flex:1;height:5px;border-radius:3px;background:#eef0f3;}
+  .stage-stepper .seg.done{background:var(--accent);}
+  .stage-stepper .seg.current{background:var(--accent);opacity:.55;}
+  .stage-label{font-size:11px;color:var(--text-dim);margin-top:5px;}
   .toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:13px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:200;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.2);}
   .toast.show{display:flex;align-items:center;gap:8px;animation:fade .2s ease;}
   .demo-flag{display:inline-block;font-size:10.5px;font-weight:700;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:6px;margin-left:8px;vertical-align:middle;}
@@ -713,6 +720,8 @@
       <div class="field"><label>Площадь здания (м², необязательно)</label><input id="projAreaInput" type="number" placeholder="например, 6608"></div>
       <div class="field"><label>Кол-во помещений (необязательно)</label><input id="projRoomsInput" type="number" placeholder="например, 232"></div>
       <div class="field"><label>Кол-во этажей (необязательно)</label><input id="projFloorsInput" type="number" placeholder="например, 5"></div>
+      <div class="field"><label>Вид проекта</label><select id="projKindInput"><option value="">— не указан —</option><option value="АКР">АКР — аудит качества работ</option><option value="ЭП">ЭП — экспериментальный проект</option><option value="Без план">Без план — разовая поставка без ТЗ</option></select></div>
+      <div class="field"><label>Этап (П1–П6)</label><select id="projStageInput"></select></div>
     </div>
 
     <div class="field">
@@ -787,6 +796,29 @@ const TYPE_ICON = { 'Школа':'🏫', 'Детский сад':'🧸', 'Уни
 const TYPE_COLOR = { 'Школа':'#dbeafe', 'Детский сад':'#fce7f3', 'Университет':'#ede9fe', 'Музыкальная школа':'#fef3c7' };
 const DEFAULT_TYPE_ICON = '🏢';
 const DEFAULT_TYPE_COLOR = '#eef2ff';
+
+const PROJECT_KINDS = {
+  'АКР': 'Аудит качества работ',
+  'ЭП': 'Экспериментальный проект',
+  'Без план': 'Разовая поставка без ТЗ'
+};
+const STAGES = [
+  { id:'P1', short:'П1', label:'Определение типа проекта' },
+  { id:'P2', short:'П2', label:'Формирование списка наименований' },
+  { id:'P3', short:'П3', label:'Техническое задание и смета' },
+  { id:'P4', short:'П4', label:'Доставка и установка' },
+  { id:'P5', short:'П5', label:'Финансовое закрытие' },
+  { id:'P6', short:'П6', label:'Подписки и постсервис' }
+];
+function getProjectStage(p){
+  return STAGES.find(s=>s.id===p.stage) ? p.stage : 'P1';
+}
+function stageStepperHTML(p){
+  const idx = STAGES.findIndex(s=>s.id===getProjectStage(p));
+  const segs = STAGES.map((s,i)=>`<div class="seg ${i<idx?'done':i===idx?'current':''}" title="${s.short} · ${s.label}"></div>`).join('');
+  const cur = STAGES[idx];
+  return `<div class="stage-stepper">${segs}</div><div class="stage-label">${cur.short} · ${cur.label}</div>`;
+}
 const TODAY = new Date('2026-06-22T00:00:00');
 
 const TEAM = {
@@ -978,6 +1010,7 @@ function renderDashboard(){
       <div class="proj-progress-wrap">
         <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:var(--accent)"></div></div>
         <div class="progress-pct">${pct}% завершено</div>
+        ${stageStepperHTML(p)}
       </div>
     </div>`;
   }).join('');
@@ -1020,6 +1053,7 @@ function renderProjectCards(){
         </div>
       </div>
       <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:var(--accent)"></div></div>
+      ${stageStepperHTML(p)}
       <div class="proj-card-stats">
         <div><b>${pct}%</b>завершено</div>
         <div><b>${doneTasks}/${totalTasks}</b>задач готово</div>
@@ -1066,7 +1100,8 @@ function openProject(id){
   currentProjectId = id;
   const p = projects.find(x=>x.id===id);
   document.getElementById('detailName').textContent = `${TYPE_ICON[p.type]||DEFAULT_TYPE_ICON} ${p.name}`;
-  document.getElementById('detailSub').innerHTML = `<span>${p.type||'Project'} · ${p.location||'—'}</span><span>Client: ${p.client||'—'}</span><span>Manager: ${getProjectManagers(p).join(', ')||'—'}</span><span>${fmtDate(p.start)} → ${fmtDate(p.end)}</span>`;
+  const curStage = STAGES.find(s=>s.id===getProjectStage(p));
+  document.getElementById('detailSub').innerHTML = `<span>${p.type||'Project'} · ${p.location||'—'}</span><span>Client: ${p.client||'—'}</span><span>Manager: ${getProjectManagers(p).join(', ')||'—'}</span><span>${fmtDate(p.start)} → ${fmtDate(p.end)}</span><span>${curStage.short} · ${curStage.label}</span>`;
 
   renderDetailStats(id);
   renderKanban(id);
@@ -1074,11 +1109,13 @@ function openProject(id){
   document.getElementById('procProjName').textContent = p.name;
   document.getElementById('overviewInfo').innerHTML = `
     Тип: <b style="color:var(--text)">${p.type||'—'}</b><br>
+    Вид проекта: <b style="color:var(--text)">${p.kind?`${p.kind} — ${PROJECT_KINDS[p.kind]||''}`:'—'}</b><br>
     Местоположение: <b style="color:var(--text)">${p.location||'—'}</b><br>
     Клиент: <b style="color:var(--text)">${p.client||'—'}</b><br>
     Руководитель(и) проекта: <b style="color:var(--text)">${getProjectManagers(p).join(', ')||'—'}</b><br>
     Сроки: <b style="color:var(--text)">${fmtDate(p.start)} – ${fmtDate(p.end)}</b><br>
     Бюджет: <b style="color:var(--text)">₸${p.budget.toLocaleString('ru-RU')}</b>${p.note?`<br><span style="font-size:12px;color:var(--text-dim);">${p.note}</span>`:''}
+    <div style="margin-top:10px;">Этап проекта (П1–П6):${stageStepperHTML(p)}</div>
   `;
   const pct = p.budget ? Math.round(p.spent/p.budget*100) : 0;
   document.getElementById('budgetFill').style.width = pct+'%';
@@ -1103,10 +1140,10 @@ function renderKanban(projectId){
   const board = document.getElementById('kanbanBoard');
   board.innerHTML = KSTATUS.map(status=>{
     const items = tasks.filter(t=>t.projectId===projectId && t.status===status);
-    return `<div class="kcol">
+    return `<div class="kcol" data-status="${status}">
       <div class="kcol-head"><span>${status}</span><span class="kcol-count">${items.length}</span></div>
       ${items.map(t=>`
-        <div class="tcard">
+        <div class="tcard" draggable="true" data-task-id="${t.id}">
           <div class="tcard-title">${t.title}</div>
           <div class="tcard-foot">
             <div class="tcard-assignee"><div class="mini-avatar">${initials(t.assignee)}</div>${fmtDate(t.due)}</div>
@@ -1115,6 +1152,40 @@ function renderKanban(projectId){
     </div>`;
   }).join('');
 }
+const kanbanBoardEl = document.getElementById('kanbanBoard');
+kanbanBoardEl.addEventListener('dragstart', e=>{
+  const card = e.target.closest('.tcard');
+  if(!card) return;
+  e.dataTransfer.setData('text/plain', card.dataset.taskId);
+  e.dataTransfer.effectAllowed = 'move';
+  card.classList.add('dragging');
+});
+kanbanBoardEl.addEventListener('dragend', e=>{
+  const card = e.target.closest('.tcard');
+  if(card) card.classList.remove('dragging');
+});
+kanbanBoardEl.addEventListener('dragover', e=>{
+  const col = e.target.closest('.kcol');
+  if(!col) return;
+  e.preventDefault();
+  col.classList.add('drag-over');
+});
+kanbanBoardEl.addEventListener('dragleave', e=>{
+  const col = e.target.closest('.kcol');
+  if(col && !col.contains(e.relatedTarget)) col.classList.remove('drag-over');
+});
+kanbanBoardEl.addEventListener('drop', e=>{
+  const col = e.target.closest('.kcol');
+  if(!col) return;
+  e.preventDefault();
+  col.classList.remove('drag-over');
+  const taskId = e.dataTransfer.getData('text/plain');
+  const newStatus = col.dataset.status;
+  if(!taskId || !newStatus) return;
+  const t = tasks.find(x=>x.id===taskId);
+  if(!t || t.status===newStatus) return;
+  db.collection('tasks').doc(taskId).update({ status:newStatus }).catch(err=>showToast('Ошибка обновления статуса: '+err.message));
+});
 
 function renderDocs(projectId){
   const docs = documents.filter(d=>d.projectId===projectId);
@@ -1229,12 +1300,14 @@ document.getElementById('projManagerNewInput').addEventListener('keydown', e=>{
   if(e.key==='Enter'){ e.preventDefault(); document.getElementById('projManagerAddBtn').click(); }
 });
 
-const PROJECT_FORM_IDS = ['projNameInput','projTypeInput','projLocationInput','projClientInput','projBudgetInput','projStartInput','projEndInput','projAreaInput','projRoomsInput','projFloorsInput','projNoteInput'];
+const PROJECT_FORM_IDS = ['projNameInput','projTypeInput','projLocationInput','projClientInput','projBudgetInput','projStartInput','projEndInput','projAreaInput','projRoomsInput','projFloorsInput','projNoteInput','projKindInput'];
 let editingProjectId = null;
+document.getElementById('projStageInput').innerHTML = STAGES.map(s=>`<option value="${s.id}">${s.short} · ${s.label}</option>`).join('');
 
 function openProjectModal(){
   editingProjectId = null;
   PROJECT_FORM_IDS.forEach(id=>document.getElementById(id).value='');
+  document.getElementById('projStageInput').value = 'P1';
   editingProjectManagers = [];
   renderManagerChips();
   document.getElementById('projectModalTitle').textContent = 'Добавить проект';
@@ -1258,6 +1331,8 @@ function openEditProjectModal(id){
   document.getElementById('projRoomsInput').value = p.rooms||'';
   document.getElementById('projFloorsInput').value = p.floors||'';
   document.getElementById('projNoteInput').value = p.note||'';
+  document.getElementById('projKindInput').value = p.kind||'';
+  document.getElementById('projStageInput').value = getProjectStage(p);
   document.getElementById('projectModalTitle').textContent = 'Редактировать проект';
   document.getElementById('projectModalSave').textContent = 'Сохранить изменения';
   document.getElementById('projectModalOverlay').classList.add('show');
@@ -1282,6 +1357,8 @@ document.getElementById('projectModalSave').addEventListener('click', ()=>{
     rooms: Number(document.getElementById('projRoomsInput').value) || 0,
     floors: Number(document.getElementById('projFloorsInput').value) || 0,
     note: document.getElementById('projNoteInput').value.trim(),
+    kind: document.getElementById('projKindInput').value,
+    stage: document.getElementById('projStageInput').value || 'P1',
   };
   if(editingProjectId){
     db.collection('projects').doc(editingProjectId).update(proj).then(()=>{

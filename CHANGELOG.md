@@ -6,6 +6,28 @@ Update this file at the end of each work session — newest entry on top.
 
 ---
 
+## 2026-06-24 — Kanban board drag-and-drop
+
+**Why:** the kanban board (К выполнению / В работе / Заблокировано / Готово) rendered cards but had no way to move a task between columns — no drag-and-drop, no click handler. Cards just sat there.
+
+**Added:** native HTML5 drag-and-drop on `#kanbanBoard`, event-delegated (listeners attached once, not per render, since `renderKanban()` replaces `innerHTML` on every Firestore snapshot). Dragging a card to another column updates that task's `status` field directly in Firestore (`tasks` collection); the existing `onSnapshot` listener re-renders the board automatically. Visual feedback: dragged card dims (`.tcard.dragging`), target column gets a dashed outline (`.kcol.drag-over`).
+
+**Not changed:** no click-to-edit on cards yet, no touch/mobile drag support (HTML5 drag-and-drop is desktop-only) — flagged for later if needed.
+
+---
+
+## 2026-06-24 — Project type (АКР/ЭП/Без план) + 6-stage pipeline (П1–П6)
+
+**Why:** Eldar shared the PINE B2B process map (Карта процессов, июнь 2026) — 3 phases / 6 processes (П1 Определение типа проекта → П2 Список наименований → П3 ТЗ и смета → П4 Доставка и установка → П5 Финансовое закрытие → П6 Подписки и постсервис). Decided to formalize this as project-level fields instead of leaving it as an external diagram. Category taxonomy review was scoped out — current 3 categories (Мебель/Техника/Дидактика) stay as-is per explicit instruction; Дидактика is the catch-all for everything besides furniture and digital equipment, so it already covers the other categories on the process map.
+
+**Added `kind` field** — values АКР (аудит качества работ) / ЭП (экспериментальный проект) / Без план (разовая поставка без ТЗ), per П1. Optional select in Add/Edit Project modal, shown in the project overview panel.
+
+**Added `stage` field** — П1–П6, defaults to `P1` for new projects and for any existing project missing the field (via `getProjectStage()` helper, same backward-compatible pattern as `getProjectManagers()`). Rendered as a plain segmented progress stepper (`stageStepperHTML()`) wherever progress already shows: dashboard project rows, project cards, and the project detail/overview panel.
+
+**Not yet built (scoped out of this pass, may come later):** document approval status (draft/under review/approved per П3), Finance module (invoicing/АВР/payment status per П5), Subscription module (post-delivery offer→contract→recurring payment per П6) — these need new Firestore collections and new UI views, bigger than a schema addition.
+
+---
+
 ## 2026-06-24 — Real project intake + Edit Project feature + task cleanup
 
 **Added the music school fitout project (from `Копия Муз шк.xlsx`) as a real project, not a demo.**
