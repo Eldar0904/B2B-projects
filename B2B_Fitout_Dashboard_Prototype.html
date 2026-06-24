@@ -148,10 +148,6 @@
   .tcard-foot{display:flex;justify-content:space-between;align-items:center;}
   .tcard-assignee{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);}
   .mini-avatar{width:20px;height:20px;border-radius:50%;background:var(--accent-light);color:var(--accent-dark);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;}
-  .pill-pri{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;}
-  .pri-high{background:var(--red-bg);color:var(--red);}
-  .pri-med{background:var(--amber-bg);color:var(--amber);}
-  .pri-low{background:#f2f4f7;color:var(--text-dim);}
 
   /* DOCUMENTS */
   .doc-table{width:100%;border-collapse:collapse;}
@@ -227,6 +223,11 @@
   .toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:13px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:200;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.2);}
   .toast.show{display:flex;align-items:center;gap:8px;animation:fade .2s ease;}
   .demo-flag{display:inline-block;font-size:10.5px;font-weight:700;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:6px;margin-left:8px;vertical-align:middle;}
+  .update-entry{border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px;background:#fff;}
+  .update-entry-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px;}
+  .update-entry-title{font-weight:700;font-size:13.5px;}
+  .update-entry-meta{font-size:11.5px;color:var(--text-faint);white-space:nowrap;}
+  .update-entry-body{font-size:12.5px;color:var(--text-dim);white-space:pre-wrap;line-height:1.6;}
   /* LOGIN */
   .login-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;}
   .login-card{width:340px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:32px 28px;box-shadow:0 10px 30px rgba(16,24,40,0.08);}
@@ -298,6 +299,10 @@
       <div class="nav-item" data-view="compare">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v18M15 3v18"/><path d="M4 8h5M15 8h5M4 16h5M15 16h5"/></svg>
         Проверка и сравнение
+      </div>
+      <div class="nav-item" data-view="updates">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        Обновления
       </div>
       <div class="nav-label">Рабочее пространство</div>
       <div class="nav-item" data-view="modules">
@@ -590,6 +595,15 @@
         </div>
       </div>
 
+      <!-- ===================== UPDATES / HISTORY ===================== -->
+      <div class="view" id="view-updates">
+        <div class="card-head" style="margin-bottom:16px;">
+          <div class="card-title">История изменений и решений</div>
+          <button class="btn btn-primary btn-sm" id="addUpdateBtn">+ Добавить запись</button>
+        </div>
+        <div id="updatesList"></div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -603,9 +617,6 @@
       <select id="taskAssigneeInput"></select>
     </div>
     <div class="field"><label>Срок выполнения</label><input type="date" id="taskDueInput" value="2026-07-01"></div>
-    <div class="field"><label>Приоритет</label>
-      <select id="taskPriorityInput"><option>Средний</option><option>Высокий</option><option>Низкий</option></select>
-    </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="taskModalCancel">Отмена</button>
       <button class="btn btn-primary" id="taskModalSave">Добавить задачу</button>
@@ -634,6 +645,23 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" id="projectModalCancel">Отмена</button>
       <button class="btn btn-primary" id="projectModalSave">Добавить проект</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPDATE ENTRY MODAL -->
+<div class="modal-overlay" id="updateModalOverlay">
+  <div class="modal">
+    <h3>Добавить запись в историю</h3>
+    <div class="field"><label>Заголовок</label><input id="updateTitleInput" placeholder="например, Запрошены финальные КП по Эстраде"></div>
+    <div class="field"><label>Описание / детали</label><textarea id="updateBodyInput" rows="4" placeholder="Что изменилось и почему"></textarea></div>
+    <div class="field"><label>Автор</label>
+      <select id="updateByInput"></select>
+    </div>
+    <div class="field"><label>Дата</label><input type="date" id="updateDateInput"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="updateModalCancel">Отмена</button>
+      <button class="btn btn-primary" id="updateModalSave">Добавить запись</button>
     </div>
   </div>
 </div>
@@ -688,25 +716,33 @@ const TEAM = {
 let projects = [];
 let tasks = [];
 let documents = [];
+let changelog = [];
 
 /* Данные для разовой инициализации Firestore при первом запуске (см. seedInitialDataIfNeeded) */
 const SEED_PROJECT = { name:'Детская музыкальная школа — комплексное оснащение', type:'Музыкальная школа', location:'Казахстан (уточняется)', client:'Уточняется', progress:5, budget:0, spent:0, manager:'А. Беков', start:'2026-06-23', end:'2027-06-30', area:6608, rooms:232, floors:5, note:'Полная ВОР получена (файл «Копия Муз шк.xlsx»): 5 этажей, 232 помещения, 6 608 м². Из них 164 помещения уже расписаны по комплектации (7 697 позиций оборудования/мебели/инструментов), 68 — пока только с площадью, без спецификации. Полностью просчитаны и подтверждены поставщиками: Эстрада (×6 каб., ≈29.8 млн ₸) и Малый актовый зал им. Д. Тезекбаева на 81 место (≈25.6 млн ₸). Бюджет оставлен на 0 до завершения просчёта остальных 230 помещений. Ключевой контакт по музыкальным отделениям — Сурапбергенова Светлана Алмабаевна, 8 705 184 06 03.' };
 const SEED_TASKS = [
-  { title:'Подтвердить реальные данные проекта (заказчик, адрес, бюджет, сроки)', assignee:'А. Беков', due:'2026-06-26', status:'К выполнению', priority:'Высокий' },
-  { title:'Эстрада (×6 каб.) — запросить финальные КП у audio-pro.kz, stepline.kz, itc-audio.kz', assignee:'А. Беков', due:'2026-06-30', status:'В работе', priority:'Высокий' },
-  { title:'Малый актовый зал (Тезекбаева) — запросить КП на рояль у Ymusic.kz / Pianos.kz', assignee:'А. Беков', due:'2026-07-03', status:'К выполнению', priority:'Высокий' },
-  { title:'Сверить кресла зрительного зала — подтвердить партию и сроки у satu.kz («Соло Вуд»)', assignee:'Д. Нурланова', due:'2026-07-05', status:'К выполнению', priority:'Средний' },
-  { title:'Загрузить сводный отчёт поставщиков (xlsx) в документы проекта', assignee:'С. Рахимова', due:'2026-06-23', status:'Готово', priority:'Низкий' },
-  { title:'Разбить полную ВОР (232 помещения) на партии для просчёта по этажам', assignee:'Т. Исмагулов', due:'2026-07-15', status:'К выполнению', priority:'Средний' },
-  { title:'Согласовать кураторов по 11 музыкальным отделениям со С. А. Сурапбергеновой', assignee:'Д. Нурланова', due:'2026-07-01', status:'К выполнению', priority:'Средний' },
+  { title:'Подтвердить реальные данные проекта (заказчик, адрес, бюджет, сроки)', assignee:'А. Беков', due:'2026-06-26', status:'К выполнению' },
+  { title:'Эстрада (×6 каб.) — запросить финальные КП у audio-pro.kz, stepline.kz, itc-audio.kz', assignee:'А. Беков', due:'2026-06-30', status:'В работе' },
+  { title:'Малый актовый зал (Тезекбаева) — запросить КП на рояль у Ymusic.kz / Pianos.kz', assignee:'А. Беков', due:'2026-07-03', status:'К выполнению' },
+  { title:'Сверить кресла зрительного зала — подтвердить партию и сроки у satu.kz («Соло Вуд»)', assignee:'Д. Нурланова', due:'2026-07-05', status:'К выполнению' },
+  { title:'Загрузить сводный отчёт поставщиков (xlsx) в документы проекта', assignee:'С. Рахимова', due:'2026-06-23', status:'Готово' },
+  { title:'Разбить полную ВОР (232 помещения) на партии для просчёта по этажам', assignee:'Т. Исмагулов', due:'2026-07-15', status:'К выполнению' },
+  { title:'Согласовать кураторов по 11 музыкальным отделениям со С. А. Сурапбергеновой', assignee:'Д. Нурланова', due:'2026-07-01', status:'К выполнению' },
 ];
 const SEED_DOC = { name:'Копия Муз шк.xlsx — полная ВОР по зданию (5 этажей, 232 помещения)', category:'Спецификация', by:'А. Беков', date:'2026-06-24', size:'—' };
+const SEED_CHANGELOG = [
+  { title:'Музыкальная школа добавлена как реальный проект', body:'Загружена полная ВОР (файл «Копия Муз шк.xlsx»): 5 этажей, 232 помещения, 6 608 м². Импортирована только сводная структура, без всех 7 697 позиций и цен — по просьбе Эльдара. Эстрада и Малый актовый зал (Тезекбаева) уже полностью просчитаны и подтверждены поставщиками.', by:'Claude', date:'2026-06-24' },
+  { title:'Добавлена функция «Редактировать проект»', body:'Прямой доступ к Firestore Admin SDK недоступен из песочницы, поэтому для применения реальных данных к уже засеянному проекту добавлена кнопка «✎ Редактировать». Те же поля (площадь, помещения, этажи, заметка) доступны и при создании нового проекта.', by:'Claude', date:'2026-06-24' },
+  { title:'Найден разрыв в проверке полноты спецификации', body:'compare-tools.js распознаёт только 3 категории (Техника/Мебель/Дидактика), а в реальной ВОР музыкальной школы их 48 (инструменты, освещение сцены, климат-контроль и др.). Пока не исправлено — список ключевых слов нужно расширить.', by:'Claude', date:'2026-06-24' },
+  { title:'Убраны чипы приоритета у задач', body:'Решение: приоритет задачи определяет команда сама, инструмент не должен его навязывать. Убран выпадающий список приоритета в форме задачи и цветной чип на карточках канбана.', by:'Claude', date:'2026-06-24' },
+  { title:'Исправлены проблемы с git', body:'Удалён зависший .git/index.lock, блокировавший коммиты в GitHub Desktop. Также убран вложенный .git внутри папки «Fitout Projects» (репозиторий был полностью закоммичен и запушен на GitHub, поэтому удаление было безопасным).', by:'Claude', date:'2026-06-24' },
+];
 
 let currentProjectId = null;
 let supplierRunsCount = 0;
 
 /* ===================== NAV ===================== */
-const views = ['dashboard','projects','detail','suppliers','compare','modules'];
+const views = ['dashboard','projects','detail','suppliers','compare','modules','updates'];
 function showView(name){
   views.forEach(v=>document.getElementById('view-'+v).classList.toggle('active', v===name));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===name));
@@ -717,6 +753,7 @@ function showView(name){
     suppliers:['ИИ-поиск поставщиков','Импортируйте позиции → агент находит и ранжирует поставщиков'],
     compare:['Проверка и сравнение','Сравнение комплектаций и проверка полноты спецификации — без внешних сервисов'],
     modules:['Модули','Управляйте активными модулями и добавляйте новые возможности'],
+    updates:['Обновления','История решений и изменений — добавляйте записи сами или они появляются автоматически'],
   };
   document.getElementById('pageTitle').textContent = titles[name][0];
   document.getElementById('pageSub').textContent = titles[name][1];
@@ -727,6 +764,7 @@ document.querySelectorAll('.nav-item[data-view]').forEach(el=>{
     showView(el.dataset.view);
     if(el.dataset.view==='projects') renderProjectCards();
     if(el.dataset.view==='dashboard') renderDashboard();
+    if(el.dataset.view==='updates') renderUpdates();
   });
 });
 document.body.addEventListener('click', e=>{
@@ -957,7 +995,6 @@ function renderKanban(projectId){
           <div class="tcard-title">${t.title}</div>
           <div class="tcard-foot">
             <div class="tcard-assignee"><div class="mini-avatar">${initials(t.assignee)}</div>${fmtDate(t.due)}</div>
-            <span class="pill-pri ${t.priority==='Высокий'?'pri-high':t.priority==='Средний'?'pri-med':'pri-low'}">${t.priority}</span>
           </div>
         </div>`).join('')}
     </div>`;
@@ -982,6 +1019,25 @@ function catColor(cat){
 }
 document.getElementById('uploadDocBtn').addEventListener('click', ()=>showToast('Здесь открылось бы окно загрузки (drag & drop, автокатегоризация).'));
 
+/* ===================== UPDATES / HISTORY ===================== */
+function renderUpdates(){
+  const wrap = document.getElementById('updatesList');
+  if(!wrap) return;
+  const sorted = [...changelog].sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  if(sorted.length===0){
+    wrap.innerHTML = `<p style="color:var(--text-dim);font-size:13px;">Записей пока нет — добавьте первую.</p>`;
+    return;
+  }
+  wrap.innerHTML = sorted.map(u=>`
+    <div class="update-entry">
+      <div class="update-entry-head">
+        <div class="update-entry-title">${u.title}</div>
+        <div class="update-entry-meta">${fmtDate(u.date)} · ${u.by||'—'}</div>
+      </div>
+      <div class="update-entry-body">${u.body||''}</div>
+    </div>`).join('');
+}
+
 /* ===================== TASK MODAL ===================== */
 function openTaskModal(){
   document.getElementById('taskTitleInput').value='';
@@ -1001,7 +1057,6 @@ document.getElementById('taskModalSave').addEventListener('click', ()=>{
     assignee: document.getElementById('taskAssigneeInput').value,
     due: document.getElementById('taskDueInput').value,
     status:'К выполнению',
-    priority: document.getElementById('taskPriorityInput').value,
   };
   db.collection('tasks').add(newTask).then(()=>{
     document.getElementById('taskTitleInput').value='';
@@ -1084,6 +1139,34 @@ document.getElementById('projectModalSave').addEventListener('click', ()=>{
   }
 });
 
+/* ===================== UPDATE ENTRY MODAL ===================== */
+const updateBySelect = document.getElementById('updateByInput');
+updateBySelect.innerHTML = Object.keys(TEAM).map(n=>`<option value="${n}">${n} — ${TEAM[n]}</option>`).join('');
+
+function openUpdateModal(){
+  document.getElementById('updateTitleInput').value='';
+  document.getElementById('updateBodyInput').value='';
+  document.getElementById('updateDateInput').value = TODAY.toISOString().slice(0,10);
+  document.getElementById('updateModalOverlay').classList.add('show');
+}
+function closeUpdateModal(){ document.getElementById('updateModalOverlay').classList.remove('show'); }
+document.getElementById('addUpdateBtn').addEventListener('click', openUpdateModal);
+document.getElementById('updateModalCancel').addEventListener('click', closeUpdateModal);
+document.getElementById('updateModalSave').addEventListener('click', ()=>{
+  const title = document.getElementById('updateTitleInput').value.trim();
+  if(!title){ showToast('Введите заголовок записи.'); return; }
+  const entry = {
+    title,
+    body: document.getElementById('updateBodyInput').value.trim(),
+    by: document.getElementById('updateByInput').value,
+    date: document.getElementById('updateDateInput').value || TODAY.toISOString().slice(0,10),
+  };
+  db.collection('changelog').add(entry).then(()=>{
+    closeUpdateModal();
+    showToast('Запись добавлена.');
+  }).catch(err=>showToast('Ошибка сохранения записи: '+err.message));
+});
+
 /* ===================== HELPERS ===================== */
 function fmtDate(d){
   const dt = new Date(d+'T00:00:00');
@@ -1094,7 +1177,7 @@ function initials(name){
 }
 
 /* ===================== AUTH GATE ===================== */
-let unsubProjects=null, unsubTasks=null, unsubDocuments=null;
+let unsubProjects=null, unsubTasks=null, unsubDocuments=null, unsubChangelog=null;
 
 function showApp(user){
   document.getElementById('loginOverlay').style.display='none';
@@ -1112,6 +1195,7 @@ function showLogin(){
   if(unsubProjects){ unsubProjects(); unsubProjects=null; }
   if(unsubTasks){ unsubTasks(); unsubTasks=null; }
   if(unsubDocuments){ unsubDocuments(); unsubDocuments=null; }
+  if(unsubChangelog){ unsubChangelog(); unsubChangelog=null; }
 }
 
 auth.onAuthStateChanged(user=>{
@@ -1144,6 +1228,7 @@ document.getElementById('currentUserEmail').addEventListener('click', ()=>auth.s
 /* ===================== FIRESTORE DATA LAYER ===================== */
 function startRealtimeListeners(){
   seedInitialDataIfNeeded();
+  seedChangelogIfNeeded();
 
   unsubProjects = db.collection('projects').onSnapshot(snap=>{
     projects = snap.docs.map(d=>({ id:d.id, ...d.data() }));
@@ -1168,6 +1253,13 @@ function startRealtimeListeners(){
       renderDocs(currentProjectId);
     }
   }, err=>showToast('Ошибка чтения документов: '+err.message));
+
+  unsubChangelog = db.collection('changelog').onSnapshot(snap=>{
+    changelog = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    if(document.getElementById('view-updates').classList.contains('active')){
+      renderUpdates();
+    }
+  }, err=>showToast('Ошибка чтения истории изменений: '+err.message));
 }
 
 function seedInitialDataIfNeeded(){
@@ -1182,6 +1274,18 @@ function seedInitialDataIfNeeded(){
     batch.set(db.collection('documents').doc(), { ...SEED_DOC, projectId: projRef.id });
     batch.set(db.collection('meta').doc('seedStatus'), { done:true, at:new Date().toISOString() });
     batch.commit().catch(err=>console.error('Ошибка начальной загрузки данных:', err));
+  });
+}
+
+function seedChangelogIfNeeded(){
+  db.collection('meta').doc('changelogSeedStatus').get().then(doc=>{
+    if(doc.exists) return;
+    const batch = db.batch();
+    SEED_CHANGELOG.forEach(entry=>{
+      batch.set(db.collection('changelog').doc(), entry);
+    });
+    batch.set(db.collection('meta').doc('changelogSeedStatus'), { done:true, at:new Date().toISOString() });
+    batch.commit().catch(err=>console.error('Ошибка начальной загрузки истории изменений:', err));
   });
 }
 </script>
