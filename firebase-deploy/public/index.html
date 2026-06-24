@@ -214,12 +214,22 @@
   /* MODAL */
   .modal-overlay{position:fixed;inset:0;background:rgba(16,24,40,0.5);display:none;align-items:center;justify-content:center;z-index:100;}
   .modal-overlay.show{display:flex;}
-  .modal{background:#fff;border-radius:14px;padding:24px;width:420px;max-width:90vw;}
+  .modal{background:#fff;border-radius:14px;padding:24px;width:420px;max-width:90vw;max-height:85vh;overflow-y:auto;}
+  .modal.modal-wide{width:680px;}
   .modal h3{margin:0 0 16px;font-size:16px;font-weight:700;}
   .field{margin-bottom:14px;}
   .field label{font-size:12px;font-weight:600;color:var(--text-dim);display:block;margin-bottom:5px;}
   .field input,.field select,.field textarea{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;}
+  .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;}
+  .field-grid .field{margin-bottom:14px;}
   .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+  .tag-select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;}
+  .tag-select-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .tag-select-empty{color:var(--text-faint);font-size:12px;padding:2px 0;}
+  .tag-chip{display:inline-flex;align-items:center;gap:5px;background:#eef2ff;color:var(--accent);font-size:12px;font-weight:600;padding:5px 6px 5px 10px;border-radius:20px;}
+  .tag-chip button{background:none;border:none;color:var(--accent);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;}
+  .tag-select-add{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+  .tag-select-add select,.tag-select-add input{flex:1 1 120px;width:auto;padding:7px 9px;border:1px solid var(--border);border-radius:7px;font-size:12.5px;font-family:inherit;}
   .toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:13px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:200;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.2);}
   .toast.show{display:flex;align-items:center;gap:8px;animation:fade .2s ease;}
   .demo-flag{display:inline-block;font-size:10.5px;font-weight:700;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:6px;margin-left:8px;vertical-align:middle;}
@@ -690,21 +700,34 @@
 
 <!-- ADD PROJECT MODAL -->
 <div class="modal-overlay" id="projectModalOverlay">
-  <div class="modal">
+  <div class="modal modal-wide">
     <h3 id="projectModalTitle">Добавить проект</h3>
     <div class="field"><label>Название проекта / здания</label><input id="projNameInput" placeholder="например, Детский сад №7 в Караганде — Оснащение"></div>
-    <div class="field"><label>Тип проекта (необязательно, свободный текст)</label><input id="projTypeInput" placeholder="например, Школа, Детский сад, Университет"></div>
-    <div class="field"><label>Местоположение</label><input id="projLocationInput" placeholder="Город"></div>
-    <div class="field"><label>Клиент</label><input id="projClientInput" placeholder="Название клиента"></div>
-    <div class="field"><label>Руководитель проекта</label>
-      <select id="projManagerInput"></select>
+
+    <div class="field-grid">
+      <div class="field"><label>Тип проекта (необязательно, свободный текст)</label><input id="projTypeInput" placeholder="например, Школа, Детский сад, Университет"></div>
+      <div class="field"><label>Местоположение</label><input id="projLocationInput" placeholder="Город"></div>
+      <div class="field"><label>Клиент</label><input id="projClientInput" placeholder="Название клиента"></div>
+      <div class="field"><label>Бюджет (₸)</label><input id="projBudgetInput" type="number" placeholder="например, 55000000"></div>
+      <div class="field"><label>Дата начала</label><input type="date" id="projStartInput"></div>
+      <div class="field"><label>Плановая дата завершения</label><input type="date" id="projEndInput"></div>
+      <div class="field"><label>Площадь здания (м², необязательно)</label><input id="projAreaInput" type="number" placeholder="например, 6608"></div>
+      <div class="field"><label>Кол-во помещений (необязательно)</label><input id="projRoomsInput" type="number" placeholder="например, 232"></div>
+      <div class="field"><label>Кол-во этажей (необязательно)</label><input id="projFloorsInput" type="number" placeholder="например, 5"></div>
     </div>
-    <div class="field"><label>Бюджет (₸)</label><input id="projBudgetInput" type="number" placeholder="например, 55000000"></div>
-    <div class="field"><label>Дата начала</label><input type="date" id="projStartInput"></div>
-    <div class="field"><label>Плановая дата завершения</label><input type="date" id="projEndInput"></div>
-    <div class="field"><label>Площадь здания (м², необязательно)</label><input id="projAreaInput" type="number" placeholder="например, 6608"></div>
-    <div class="field"><label>Кол-во помещений (необязательно)</label><input id="projRoomsInput" type="number" placeholder="например, 232"></div>
-    <div class="field"><label>Кол-во этажей (необязательно)</label><input id="projFloorsInput" type="number" placeholder="например, 5"></div>
+
+    <div class="field">
+      <label>Руководитель(и) проекта</label>
+      <div class="tag-select">
+        <div class="tag-select-chips" id="projManagerChips"></div>
+        <div class="tag-select-add">
+          <select id="projManagerAddSelect"></select>
+          <input id="projManagerNewInput" placeholder="или впишите новое имя">
+          <button type="button" class="btn btn-ghost btn-sm" id="projManagerAddBtn">+ Добавить</button>
+        </div>
+      </div>
+    </div>
+
     <div class="field"><label>Заметка / статус по ведомости (необязательно)</label><textarea id="projNoteInput" rows="3" placeholder="например: какие помещения уже просчитаны, что в работе, ключевые контакты"></textarea></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="projectModalCancel">Отмена</button>
@@ -1044,7 +1067,7 @@ function openProject(id){
   currentProjectId = id;
   const p = projects.find(x=>x.id===id);
   document.getElementById('detailName').textContent = `${TYPE_ICON[p.type]||DEFAULT_TYPE_ICON} ${p.name}`;
-  document.getElementById('detailSub').innerHTML = `<span>${p.type||'Project'} · ${p.location||'—'}</span><span>Client: ${p.client||'—'}</span><span>Manager: ${p.manager||'—'}</span><span>${fmtDate(p.start)} → ${fmtDate(p.end)}</span>`;
+  document.getElementById('detailSub').innerHTML = `<span>${p.type||'Project'} · ${p.location||'—'}</span><span>Client: ${p.client||'—'}</span><span>Manager: ${getProjectManagers(p).join(', ')||'—'}</span><span>${fmtDate(p.start)} → ${fmtDate(p.end)}</span>`;
 
   renderDetailStats(id);
   renderKanban(id);
@@ -1054,7 +1077,7 @@ function openProject(id){
     Тип: <b style="color:var(--text)">${p.type||'—'}</b><br>
     Местоположение: <b style="color:var(--text)">${p.location||'—'}</b><br>
     Клиент: <b style="color:var(--text)">${p.client||'—'}</b><br>
-    Руководитель проекта: <b style="color:var(--text)">${p.manager||'—'}</b><br>
+    Руководитель(и) проекта: <b style="color:var(--text)">${getProjectManagers(p).join(', ')||'—'}</b><br>
     Сроки: <b style="color:var(--text)">${fmtDate(p.start)} – ${fmtDate(p.end)}</b><br>
     Бюджет: <b style="color:var(--text)">₸${p.budget.toLocaleString('ru-RU')}</b>${p.note?`<br><span style="font-size:12px;color:var(--text-dim);">${p.note}</span>`:''}
   `;
@@ -1162,8 +1185,50 @@ document.getElementById('taskModalSave').addEventListener('click', ()=>{
 const taskAssigneeSelect = document.getElementById('taskAssigneeInput');
 taskAssigneeSelect.innerHTML = Object.keys(TEAM).map(n=>`<option value="${n}">${n} — ${TEAM[n]}</option>`).join('');
 
-const projManagerSelect = document.getElementById('projManagerInput');
-projManagerSelect.innerHTML = Object.keys(TEAM).map(n=>`<option value="${n}">${n} — ${TEAM[n]}</option>`).join('');
+/* Руководители проекта — мультивыбор тегами (из команды или свободным текстом),
+   а не один жёсткий select. Храним массив managers[]; manager (строка, первый
+   из списка) оставлен для обратной совместимости со старыми данными/местами кода. */
+function getProjectManagers(p){
+  if(Array.isArray(p.managers) && p.managers.length) return p.managers;
+  if(p.manager) return [p.manager];
+  return [];
+}
+let editingProjectManagers = [];
+const projManagerAddSelect = document.getElementById('projManagerAddSelect');
+function refreshManagerAddOptions(){
+  projManagerAddSelect.innerHTML = '<option value="">+ из команды…</option>' +
+    Object.keys(TEAM).filter(n=>!editingProjectManagers.includes(n)).map(n=>`<option value="${n}">${n} — ${TEAM[n]}</option>`).join('');
+}
+function renderManagerChips(){
+  const wrap = document.getElementById('projManagerChips');
+  wrap.innerHTML = editingProjectManagers.length
+    ? editingProjectManagers.map(n=>`<span class="tag-chip">${n}<button type="button" data-remove-manager="${n}" aria-label="Удалить">×</button></span>`).join('')
+    : `<div class="tag-select-empty">Руководитель не указан — добавьте ниже.</div>`;
+  refreshManagerAddOptions();
+}
+function addProjectManager(name){
+  name = (name||'').trim();
+  if(!name || editingProjectManagers.includes(name)) return;
+  editingProjectManagers.push(name);
+  renderManagerChips();
+}
+document.getElementById('projManagerChips').addEventListener('click', e=>{
+  const btn = e.target.closest('[data-remove-manager]');
+  if(!btn) return;
+  editingProjectManagers = editingProjectManagers.filter(n=>n!==btn.dataset.removeManager);
+  renderManagerChips();
+});
+projManagerAddSelect.addEventListener('change', ()=>{
+  if(projManagerAddSelect.value){ addProjectManager(projManagerAddSelect.value); projManagerAddSelect.value=''; }
+});
+document.getElementById('projManagerAddBtn').addEventListener('click', ()=>{
+  const input = document.getElementById('projManagerNewInput');
+  addProjectManager(input.value);
+  input.value = '';
+});
+document.getElementById('projManagerNewInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); document.getElementById('projManagerAddBtn').click(); }
+});
 
 const PROJECT_FORM_IDS = ['projNameInput','projTypeInput','projLocationInput','projClientInput','projBudgetInput','projStartInput','projEndInput','projAreaInput','projRoomsInput','projFloorsInput','projNoteInput'];
 let editingProjectId = null;
@@ -1171,7 +1236,8 @@ let editingProjectId = null;
 function openProjectModal(){
   editingProjectId = null;
   PROJECT_FORM_IDS.forEach(id=>document.getElementById(id).value='');
-  document.getElementById('projManagerInput').value = Object.keys(TEAM)[0];
+  editingProjectManagers = [];
+  renderManagerChips();
   document.getElementById('projectModalTitle').textContent = 'Добавить проект';
   document.getElementById('projectModalSave').textContent = 'Добавить проект';
   document.getElementById('projectModalOverlay').classList.add('show');
@@ -1184,7 +1250,8 @@ function openEditProjectModal(id){
   document.getElementById('projTypeInput').value = p.type||'';
   document.getElementById('projLocationInput').value = p.location||'';
   document.getElementById('projClientInput').value = p.client||'';
-  document.getElementById('projManagerInput').value = p.manager||Object.keys(TEAM)[0];
+  editingProjectManagers = getProjectManagers(p);
+  renderManagerChips();
   document.getElementById('projBudgetInput').value = p.budget||'';
   document.getElementById('projStartInput').value = p.start||'';
   document.getElementById('projEndInput').value = p.end||'';
@@ -1207,7 +1274,8 @@ document.getElementById('projectModalSave').addEventListener('click', ()=>{
     type: document.getElementById('projTypeInput').value.trim(),
     location: document.getElementById('projLocationInput').value.trim(),
     client: document.getElementById('projClientInput').value.trim(),
-    manager: document.getElementById('projManagerInput').value,
+    managers: [...editingProjectManagers],
+    manager: editingProjectManagers[0] || '',
     budget: Number(document.getElementById('projBudgetInput').value) || 0,
     start: document.getElementById('projStartInput').value || TODAY.toISOString().slice(0,10),
     end: document.getElementById('projEndInput').value || TODAY.toISOString().slice(0,10),
