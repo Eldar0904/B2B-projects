@@ -538,35 +538,35 @@
       <div class="view" id="view-modules">
         <p style="color:var(--text-dim);font-size:13px;margin-bottom:18px;max-width:600px;">PINE создан, чтобы расти вместе с вашей командой. Каждый модуль ниже работает независимо — включайте существующие или добавляйте новые (например, «Бюджетирование», «Отчётность», «Осмотры объектов», «Портал клиента») без нарушения текущих данных.</p>
         <div class="module-grid">
-          <div class="module-card" data-nav-view="dashboard">
+          <div class="module-card" data-nav-view="dashboard" data-module="dashboard">
             <div class="module-icon" style="background:var(--blue-bg)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" width="18" height="18"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/></svg></div>
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <b>Дэшборд</b><div class="toggle on"></div>
             </div>
             <p style="font-size:12px;color:var(--text-dim);margin:8px 0 0;">KPI и обзор хода работ по всем проектам.</p>
           </div>
-          <div class="module-card" data-toggleable="true">
+          <div class="module-card" data-toggleable="true" data-module="tasks">
             <div class="module-icon" style="background:var(--green-bg)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" width="18" height="18"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <b>Задачи</b><div class="toggle on"></div>
             </div>
             <p style="font-size:12px;color:var(--text-dim);margin:8px 0 0;">Канбан-доска задач по каждому проекту.</p>
           </div>
-          <div class="module-card" data-toggleable="true">
+          <div class="module-card" data-toggleable="true" data-module="documents">
             <div class="module-icon" style="background:var(--amber-bg)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" width="18" height="18"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg></div>
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <b>Документы</b><div class="toggle on"></div>
             </div>
             <p style="font-size:12px;color:var(--text-dim);margin:8px 0 0;">Реестр документов по каждому проекту.</p>
           </div>
-          <div class="module-card" data-nav-view="suppliers">
+          <div class="module-card" data-nav-view="suppliers" data-module="suppliers">
             <div class="module-icon" style="background:#ede9fe"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" width="18" height="18"><path d="M12 2l2.6 6.2 6.7.5-5.1 4.4 1.6 6.5L12 16.2 6.2 19.6l1.6-6.5-5.1-4.4 6.7-.5z"/></svg></div>
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <b>ИИ-поиск поставщиков</b><div class="toggle on"></div>
             </div>
             <p style="font-size:12px;color:var(--text-dim);margin:8px 0 0;">Агентный веб-поиск поставщиков.</p>
           </div>
-          <div class="module-card" data-nav-view="compare">
+          <div class="module-card" data-nav-view="compare" data-module="compare">
             <div class="module-icon" style="background:#eef2ff"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" width="18" height="18"><path d="M9 3v18M15 3v18"/><path d="M4 8h5M15 8h5M4 16h5M15 16h5"/></svg></div>
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <b>Проверка и сравнение</b><div class="toggle on"></div>
@@ -717,6 +717,7 @@ let projects = [];
 let tasks = [];
 let documents = [];
 let changelog = [];
+let moduleSettings = {};
 
 /* Данные для разовой инициализации Firestore при первом запуске (см. seedInitialDataIfNeeded) */
 const SEED_PROJECT = { name:'Детская музыкальная школа — комплексное оснащение', type:'Музыкальная школа', location:'Казахстан (уточняется)', client:'Уточняется', progress:5, budget:0, spent:0, manager:'А. Беков', start:'2026-06-23', end:'2027-06-30', area:6608, rooms:232, floors:5, note:'Полная ВОР получена (файл «Копия Муз шк.xlsx»): 5 этажей, 232 помещения, 6 608 м². Из них 164 помещения уже расписаны по комплектации (7 697 позиций оборудования/мебели/инструментов), 68 — пока только с площадью, без спецификации. Полностью просчитаны и подтверждены поставщиками: Эстрада (×6 каб., ≈29.8 млн ₸) и Малый актовый зал им. Д. Тезекбаева на 81 место (≈25.6 млн ₸). Бюджет оставлен на 0 до завершения просчёта остальных 230 помещений. Ключевой контакт по музыкальным отделениям — Сурапбергенова Светлана Алмабаевна, 8 705 184 06 03.' };
@@ -1177,7 +1178,7 @@ function initials(name){
 }
 
 /* ===================== AUTH GATE ===================== */
-let unsubProjects=null, unsubTasks=null, unsubDocuments=null, unsubChangelog=null;
+let unsubProjects=null, unsubTasks=null, unsubDocuments=null, unsubChangelog=null, unsubModuleSettings=null;
 
 function showApp(user){
   document.getElementById('loginOverlay').style.display='none';
@@ -1196,6 +1197,7 @@ function showLogin(){
   if(unsubTasks){ unsubTasks(); unsubTasks=null; }
   if(unsubDocuments){ unsubDocuments(); unsubDocuments=null; }
   if(unsubChangelog){ unsubChangelog(); unsubChangelog=null; }
+  if(unsubModuleSettings){ unsubModuleSettings(); unsubModuleSettings=null; }
 }
 
 auth.onAuthStateChanged(user=>{
@@ -1260,6 +1262,11 @@ function startRealtimeListeners(){
       renderUpdates();
     }
   }, err=>showToast('Ошибка чтения истории изменений: '+err.message));
+
+  unsubModuleSettings = db.collection('meta').doc('moduleSettings').onSnapshot(doc=>{
+    moduleSettings = doc.exists ? doc.data() : {};
+    applyModuleSettings();
+  }, err=>showToast('Ошибка чтения настроек модулей: '+err.message));
 }
 
 function seedInitialDataIfNeeded(){
