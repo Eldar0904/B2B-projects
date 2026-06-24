@@ -119,8 +119,6 @@
   .role-row .role-title{font-size:11px;color:var(--text-dim);}
   .role-row .role-frac{font-size:11.5px;color:var(--text-dim);font-weight:600;flex-shrink:0;}
   .role-empty{font-size:12px;color:var(--text-faint);padding:10px 0;text-align:center;}
-  .card-footer-row{display:flex;gap:8px;margin-top:14px;}
-  .card-footer-row .btn{flex:1;justify-content:center;}
 
   /* DETAIL VIEW */
   .breadcrumb{font-size:12.5px;color:var(--text-dim);margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:6px;}
@@ -1062,25 +1060,9 @@ function renderProjectCards(){
         <div><b>${fmtDate(p.end)}</b>срок</div>
       </div>
       <div class="role-list">${roleBreakdownHTML(p.id)}</div>
-      <div class="card-footer-row">
-        <button class="btn btn-ghost btn-sm" data-quickadd="${p.id}">+ Добавить задачу</button>
-        <button class="btn btn-primary btn-sm" data-open-detail="${p.id}">Открыть проект →</button>
-      </div>
     </div>`;
   }).join('');
-  wrap.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click', e=>{
-    if(e.target.closest('[data-quickadd]') || e.target.closest('[data-open-detail]')) return;
-    openProject(el.dataset.open);
-  }));
-  wrap.querySelectorAll('[data-open-detail]').forEach(el=>el.addEventListener('click', e=>{
-    e.stopPropagation();
-    openProject(el.dataset.openDetail);
-  }));
-  wrap.querySelectorAll('[data-quickadd]').forEach(el=>el.addEventListener('click', e=>{
-    e.stopPropagation();
-    currentProjectId = el.dataset.quickadd;
-    openTaskModal();
-  }));
+  wrap.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click', ()=>openProject(el.dataset.open)));
 }
 
 /* ===================== PROJECT DETAIL ===================== */
