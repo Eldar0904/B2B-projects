@@ -6,6 +6,18 @@ Update this file at the end of each work session — newest entry on top.
 
 ---
 
+## 2026-06-25 — Fuzzy item matching + Excel/CSV price-list import
+
+**Why:** second AI-roadmap tier (Этап 2 — classical algorithms, no API cost) selected by Eldar: "Нормализация + поиск аналогов товаров" and "Парсинг прайс-листов поставщиков (PDF/Excel)". Both extend the existing deterministic `compare-tools.js` module rather than adding a new one — same no-LLM philosophy.
+
+**Added fuzzy/analog matching to the comparison tool.** `diffLists()` now runs a second pass on items that don't exact-match: a token-sorted, synonym-canonicalized key (`fuzzyKey()`) plus Levenshtein edit distance (`levenshtein()`/`nameSimilarity()`, threshold 0.72) catches the same item written differently — typos, word order, or known phrasing variants (e.g. "доска интерактивная" vs "интерактивная доска"). These show as a new "Вероятно один и тот же товар" section with a similarity %, separate from genuine only-in-A/only-in-B items. Exact-match dedupe (`normalizeItemName`) is untouched, so existing behavior doesn't change — fuzzy matching only kicks in for leftovers.
+
+**Added supplier price-list import (Excel/CSV).** New card in "Проверка и сравнение" with a file input; parses the sheet client-side via SheetJS (loaded from cdnjs), auto-detects наименование/количество/цена columns by header keywords, previews up to 300 rows, and pushes the result straight into the existing Комплектация А/Б or completeness-check textareas — no new data model, reuses the comparison/completeness tools as-is.
+
+**Not built: PDF parsing.** Reliable table extraction from PDF needs server-side tooling (OCR/layout detection) we don't have — flagged in-app, users are told to save as Excel/CSV or paste text manually. Scoped down from the roadmap item, which only classified Excel/structured-file parsing as deterministic; PDF was already flagged in the roadmap as messier.
+
+---
+
 ## 2026-06-24 — Kanban board drag-and-drop
 
 **Why:** the kanban board (К выполнению / В работе / Заблокировано / Готово) rendered cards but had no way to move a task between columns — no drag-and-drop, no click handler. Cards just sat there.
