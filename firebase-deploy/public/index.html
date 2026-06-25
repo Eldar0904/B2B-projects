@@ -247,6 +247,45 @@
   .plan-list li{font-size:12.5px;color:var(--text-dim);line-height:1.6;padding:8px 0;border-bottom:1px solid var(--border);}
   .plan-list li:last-child{border-bottom:none;padding-bottom:0;}
   .plan-list li b{color:var(--text);font-weight:700;}
+
+  /* TEAM / PRESENCE / CHAT / ACTIVITY (virtual office) */
+  .dash-cols{display:grid;grid-template-columns:1.6fr 1fr;gap:20px;align-items:start;}
+  .team-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--border);}
+  .team-row:last-child{border-bottom:none;}
+  .team-row-avatar-wrap{position:relative;flex-shrink:0;}
+  .presence-dot{position:absolute;width:9px;height:9px;border-radius:50%;border:2px solid var(--card);bottom:-2px;right:-2px;background:var(--text-faint);}
+  .presence-dot.online{background:var(--green);}
+  .team-row-info{flex:1;min-width:0;}
+  .team-row-name{font-size:12.5px;font-weight:600;}
+  .team-row-role{font-size:11px;color:var(--text-dim);}
+  .team-row-seen{font-size:10.5px;color:var(--text-faint);white-space:nowrap;flex-shrink:0;}
+  .team-empty{font-size:12px;color:var(--text-faint);padding:10px 0;text-align:center;}
+
+  .activity-row{display:flex;align-items:flex-start;gap:10px;padding:10px 2px;border-bottom:1px solid var(--border);}
+  .activity-row:last-child{border-bottom:none;}
+  .activity-body{flex:1;min-width:0;font-size:12.5px;color:var(--text);line-height:1.45;}
+  .activity-body b{font-weight:700;}
+  .activity-time{font-size:11px;color:var(--text-faint);margin-top:2px;}
+
+  .team-chat-card{display:flex;flex-direction:column;height:340px;}
+  .chat-messages{flex:1;overflow-y:auto;padding-right:2px;margin-bottom:10px;}
+  .chat-msg{display:flex;gap:8px;margin-bottom:12px;}
+  .chat-msg-body{flex:1;min-width:0;}
+  .chat-msg-head{display:flex;align-items:baseline;gap:7px;margin-bottom:2px;}
+  .chat-msg-name{font-size:12px;font-weight:700;}
+  .chat-msg-time{font-size:10.5px;color:var(--text-faint);}
+  .chat-msg-text{font-size:13px;color:var(--text);line-height:1.4;word-break:break-word;}
+  .chat-empty{font-size:12px;color:var(--text-faint);text-align:center;padding:20px 0;}
+  .chat-input-row{display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:10px;}
+  .chat-input-row select{flex:0 0 128px;padding:7px 8px;border:1px solid var(--border);border-radius:7px;font-size:11.5px;font-family:inherit;}
+  .chat-input-row input{flex:1;min-width:80px;padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-size:12.5px;font-family:inherit;}
+
+  .team-edit-row{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--border);}
+  .team-edit-row:last-child{border-bottom:none;}
+  .team-edit-row-info{flex:1;min-width:0;}
+  .team-edit-row-name{font-size:13px;font-weight:600;}
+  .team-edit-row-role{font-size:11.5px;color:var(--text-dim);}
+
   /* LOGIN */
   .login-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;}
   .login-card{width:340px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:32px 28px;box-shadow:0 10px 30px rgba(16,24,40,0.08);}
@@ -413,12 +452,43 @@
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-head">
-            <div class="card-title">Активные проекты</div>
-            <span class="link-sm" data-view-link="projects">Все проекты →</span>
+        <div class="dash-cols">
+          <div>
+            <div class="card">
+              <div class="card-head">
+                <div class="card-title">Активные проекты</div>
+                <span class="link-sm" data-view-link="projects">Все проекты →</span>
+              </div>
+              <div id="dashProjectList"></div>
+            </div>
+
+            <div class="card" style="margin-top:20px;">
+              <div class="card-head">
+                <div class="card-title">Лента событий</div>
+              </div>
+              <div id="activityFeedWrap"></div>
+            </div>
           </div>
-          <div id="dashProjectList"></div>
+
+          <div>
+            <div class="card" style="margin-bottom:20px;">
+              <div class="card-head">
+                <div class="card-title">Команда</div>
+                <button class="btn btn-ghost btn-sm" id="openTeamModalBtn">✎ Управление</button>
+              </div>
+              <div id="teamPanelWrap"></div>
+            </div>
+
+            <div class="card team-chat-card">
+              <div class="card-head"><div class="card-title">Командный чат</div></div>
+              <div class="chat-messages" id="chatMessagesWrap"></div>
+              <div class="chat-input-row">
+                <select id="chatSenderSelect"></select>
+                <input id="chatMessageInput" placeholder="Написать команде…" maxlength="500">
+                <button class="btn btn-primary btn-sm" id="chatSendBtn">→</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -767,6 +837,22 @@
   </div>
 </div>
 
+<!-- TEAM MODAL -->
+<div class="modal-overlay" id="teamModalOverlay">
+  <div class="modal">
+    <h3>Управление командой</h3>
+    <div id="teamEditList" style="margin-bottom:16px;"></div>
+    <div class="field"><label>Имя</label><input id="teamNewNameInput" placeholder="например, К. Сапаров"></div>
+    <div class="field"><label>Роль</label><input id="teamNewRoleInput" placeholder="например, Менеджер по закупкам"></div>
+    <div class="modal-actions" style="justify-content:flex-start;margin-top:0;margin-bottom:18px;">
+      <button class="btn btn-primary btn-sm" id="teamAddMemberBtn">+ Добавить участника</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="teamModalClose">Готово</button>
+    </div>
+  </div>
+</div>
+
 <div class="shortlist-bar" id="shortlistBar">
   <div><b id="shortlistCount">0</b> поставщиков в шортлисте</div>
   <div style="display:flex;gap:8px;">
@@ -827,13 +913,20 @@ function stageStepperHTML(p){
 }
 const TODAY = new Date('2026-06-22T00:00:00');
 
-const TEAM = {
+/* TEAM_SEED — стартовый состав команды, используется только для разовой
+   инициализации Firestore-коллекции `team` (см. seedTeamIfNeeded ниже).
+   После этого живой источник правды — Firestore, а не этот объект. */
+const TEAM_SEED = {
   'А. Беков': 'Руководитель закупок',
   'Д. Нурланова': 'Руководитель объекта',
   'Т. Исмагулов': 'Руководитель проекта',
   'С. Рахимова': 'Руководитель документации',
   'М. Тлеулин': 'Руководитель монтажа',
 };
+let TEAM = { ...TEAM_SEED };
+let teamDocs = []; // [{id, name, role}]
+let activityLog = [];
+let chatMessages = [];
 
 /* Эти три массива теперь живут в Firestore и заполняются через onSnapshot
    (см. startRealtimeListeners ниже). Здесь — только локальные зеркала. */
@@ -1174,7 +1267,9 @@ kanbanBoardEl.addEventListener('drop', e=>{
   if(!taskId || !newStatus) return;
   const t = tasks.find(x=>x.id===taskId);
   if(!t || t.status===newStatus) return;
-  db.collection('tasks').doc(taskId).update({ status:newStatus }).catch(err=>showToast('Ошибка обновления статуса: '+err.message));
+  db.collection('tasks').doc(taskId).update({ status:newStatus }).then(()=>{
+    logActivity(`перевёл(а) задачу «${t.title}» в статус «${newStatus}»`, t.assignee);
+  }).catch(err=>showToast('Ошибка обновления статуса: '+err.message));
 });
 
 function renderDocs(projectId){
@@ -1235,6 +1330,7 @@ document.getElementById('taskModalSave').addEventListener('click', ()=>{
     status:'К выполнению',
   };
   db.collection('tasks').add(newTask).then(()=>{
+    logActivity(`создал(а) задачу «${title}»`, newTask.assignee);
     document.getElementById('taskTitleInput').value='';
     closeTaskModal();
     showToast('Задача добавлена.');
