@@ -541,7 +541,7 @@
       <div class="view" id="view-compare">
         <div class="card" style="margin-bottom:20px;">
           <div class="card-title" style="margin-bottom:8px;">Сравнение комплектаций</div>
-          <p style="color:var(--text-dim);font-size:12.5px;margin:0 0 14px;">Вставьте два перечня позиций (одна позиция на строку, например «Стулья для класса x240») — расхождения по составу и количеству подсветятся ниже. Чисто построчное сравнение текста, без обращения к внешним сервисам.</p>
+          <p style="color:var(--text-dim);font-size:12.5px;margin:0 0 14px;">Вставьте два перечня позиций (одна позиция на строку, например «Стулья для класса x240») — расхождения по составу и количеству подсветятся ниже. Похожие по написанию позиции (опечатки, другой порядок слов, синонимы) подсвечиваются отдельно как вероятные совпадения. Чисто построчное сравнение текста, без обращения к внешним сервисам.</p>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
             <div>
               <label style="font-size:12px;font-weight:600;color:var(--text-dim);display:block;margin-bottom:5px;">Комплектация А</label>
@@ -567,6 +567,13 @@
           </div>
         </div>
         <div id="completenessResultsWrap"></div>
+
+        <div class="card" style="margin:28px 0 20px;">
+          <div class="card-title" style="margin-bottom:8px;">Импорт прайс-листа поставщика (Excel / CSV)</div>
+          <p style="color:var(--text-dim);font-size:12.5px;margin:0 0 14px;">Загрузите файл — таблица разбирается на позиции прямо в браузере, без отправки на сервер. Колонки «наименование» / «количество» / «цена» определяются автоматически по заголовкам; если файл нестандартный, проверьте результат перед использованием. PDF не поддерживается — сохраните прайс-лист как Excel/CSV или вставьте текст вручную в поля выше.</p>
+          <input type="file" id="priceListFile" accept=".xlsx,.xls,.csv" style="font-size:13px;"/>
+          <div id="priceListPreview" style="margin-top:14px;"></div>
+        </div>
       </div>
 
       <!-- ===================== MODULES ===================== -->
@@ -1515,6 +1522,7 @@ function seedChangelogIfNeeded(){
   });
 }
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="supplier-ai.js"></script>
 <script src="compare-tools.js"></script>
 </body>
