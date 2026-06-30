@@ -533,7 +533,10 @@
         <div id="tab-documents" style="display:none;">
           <div class="card-head">
             <div class="card-title">Реестр документов</div>
-            <button class="btn btn-primary btn-sm" id="uploadDocBtn">+ Загрузить документ</button>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" id="generateActBtn">+ Сформировать акт</button>
+              <button class="btn btn-primary btn-sm" id="uploadDocBtn">+ Загрузить документ</button>
+            </div>
           </div>
           <table class="doc-table">
             <thead><tr><th>Документ</th><th>Категория</th><th>Загрузил</th><th>Дата</th><th>Размер</th><th></th></tr></thead>
@@ -848,6 +851,54 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="teamModalClose">Готово</button>
+    </div>
+  </div>
+</div>
+
+<!-- ACT GENERATION MODAL -->
+<div class="modal-overlay" id="actModalOverlay">
+  <div class="modal modal-wide">
+    <h3>Сформировать акт</h3>
+
+    <div class="field-grid">
+      <div class="field"><label>Тип акта</label>
+        <select id="actTypeInput">
+          <option value="transfer_priced">Акт приёма-передачи (с ценами)</option>
+          <option value="transfer_plain">Акт приёма-передачи (без цен)</option>
+          <option value="defect">Дефектный акт</option>
+        </select>
+      </div>
+      <div class="field"><label>Номер акта</label><input id="actNumberInput" placeholder="например, 01"></div>
+      <div class="field"><label>Дата</label><input type="date" id="actDateInput"></div>
+    </div>
+
+    <div class="field"><label>Объект</label><input id="actObjectInput" placeholder="Название проекта / объекта"></div>
+
+    <div class="field-grid">
+      <div class="field"><label id="actCustomerLabel">Заказчик</label><textarea id="actCustomerInput" rows="2" placeholder="ТОО «Заказчик», БИН ..., адрес ..."></textarea></div>
+      <div class="field"><label id="actContractorLabel">Исполнитель</label><textarea id="actContractorInput" rows="2" placeholder="[Название компании], БИН [...], адрес [...]"></textarea></div>
+    </div>
+
+    <div class="field">
+      <label>Позиции (по одной на строку — например «Школьные парты x120, 25000» или для дефектного акта «Стул x1 — треснута ножка»)</label>
+      <textarea id="actItemsRaw" rows="4" placeholder="Школьные парты (2-местные) x120, 25000"></textarea>
+      <div style="margin-top:8px;"><button type="button" class="btn btn-ghost btn-sm" id="actParseItemsBtn">Разобрать список</button></div>
+    </div>
+
+    <div id="actItemsPreviewWrap" style="display:none;margin-bottom:14px;">
+      <table class="doc-table" id="actItemsTable"></table>
+    </div>
+
+    <div class="field"><label id="actNotesLabel">Примечания</label><textarea id="actNotesInput" rows="2" placeholder="необязательно"></textarea></div>
+
+    <div class="field-grid">
+      <div class="field"><label id="actSigner1Label">Сдал (должность, Ф.И.О.)</label><input id="actSigner1Input" placeholder="например, Менеджер проекта А. Иванов"></div>
+      <div class="field"><label id="actSigner2Label">Принял (должность, Ф.И.О.)</label><textarea id="actSigner2Input" rows="2" placeholder="например, Завхоз Б. Петров"></textarea></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="actModalCancel">Отмена</button>
+      <button class="btn btn-primary" id="actModalGenerate">Сформировать и скачать .docx</button>
     </div>
   </div>
 </div>
@@ -1285,7 +1336,7 @@ function renderDocs(projectId){
     </tr>`).join('');
 }
 function catColor(cat){
-  const m = {'Контракт':'#dbeafe','План этажа':'#fce7f3','Спецификация':'#ede9fe','Накладная':'#dcfce7','Разрешение':'#fef3c7','Фото':'#f2f4f7','Закупка':'#fee2e2'};
+  const m = {'Контракт':'#dbeafe','План этажа':'#fce7f3','Спецификация':'#ede9fe','Накладная':'#dcfce7','Разрешение':'#fef3c7','Фото':'#f2f4f7','Закупка':'#fee2e2','Акт':'#cffafe'};
   return m[cat] || '#f2f4f7';
 }
 document.getElementById('uploadDocBtn').addEventListener('click', ()=>showToast('Здесь открылось бы окно загрузки (drag & drop, автокатегоризация).'));
@@ -1857,7 +1908,9 @@ function seedTeamIfNeeded(){
 }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="supplier-ai.js"></script>
 <script src="compare-tools.js"></script>
+<script src="act-generator.js"></script>
 </body>
 </html>

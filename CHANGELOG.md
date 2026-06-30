@@ -6,6 +6,26 @@ Update this file at the end of each work session — newest entry on top.
 
 ---
 
+## 2026-06-25 — Virtual office: presence + activity feed, team chat, roster editor
+
+**Why:** Eldar asked to turn the dashboard into a "virtual office" — team presence, the ability to message the team, and a way to edit the team and see who's assigned where. Scoped via three explicit choices: presence + activity feed layered onto the existing dashboard (not a separate view), one shared team-wide chat channel (not per-project threads), and a Firestore-backed roster editor (project/task assignment stays on the existing dropdowns, no new workload view).
+
+**Added a two-column dashboard layout (`.dash-cols`).** Left column keeps the existing project list and adds a "Лента событий" (activity feed) card below it. Right column adds a "Команда" presence panel (with a "✎ Управление" button opening the roster editor) and a "Командный чат" card.
+
+**Team roster moved from a hardcoded object to Firestore.** `TEAM` is now derived live from the `team` collection (seeded once from `TEAM_SEED` via `seedTeamIfNeeded()`/`meta/teamSeedStatus`, same pattern as the existing changelog/project seeding). The roster editor (`#teamModalOverlay`) lists members with a delete button gated by `confirm()` — the first destructive-delete UI in this app — and a simple add-member form. Every select that lists team members (task assignee, update-entry author, project manager picker, chat sender) refreshes automatically off the `team` onSnapshot via `refreshTeamDependentSelects()`.
+
+**Added one shared team-wide chat** (`messages` collection, ordered by `at` ascending). Any team member can pick their name from `chatSenderSelect` (remembered in `localStorage`) and send a message; no per-project channels.
+
+**Added a lightweight activity feed** (`activity` collection) via `logActivity(text, by)` — fire-and-forget, called on task creation, kanban status changes, project create/edit, and changelog entry creation. Deliberately not called from chat sends, so the feed doesn't duplicate chat content.
+
+**Presence is derived, not tracked.** No separate heartbeat/online collection — `lastSeenFor(name)` checks the most recent chat message or activity entry for that person and treats anyone active in the last 15 minutes (`PRESENCE_WINDOW_MS`) as online.
+
+**Not built:** per-project chat threads, a dedicated workload/assignment view (assignment still happens through the existing task/project manager dropdowns), and a real presence/heartbeat mechanism.
+
+**Mirrored to `firebase-deploy/public/index.html`** via the usual parity pass — CSS block, dashboard markup, team modal markup, TEAM→Firestore migration, all new JS (roster editor, chat, activity log, presence panel), the three new `onSnapshot` listeners + `seedTeamIfNeeded()` in `startRealtimeListeners()`, and all `logActivity()` call sites. Verified line-for-line against the root file.
+
+---
+
 ## 2026-06-25 — Fuzzy item matching + Excel/CSV price-list import
 
 **Why:** second AI-roadmap tier (Этап 2 — classical algorithms, no API cost) selected by Eldar: "Нормализация + поиск аналогов товаров" and "Парсинг прайс-листов поставщиков (PDF/Excel)". Both extend the existing deterministic `compare-tools.js` module rather than adding a new one — same no-LLM philosophy.

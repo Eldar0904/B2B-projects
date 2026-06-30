@@ -533,7 +533,10 @@
         <div id="tab-documents" style="display:none;">
           <div class="card-head">
             <div class="card-title">Реестр документов</div>
-            <button class="btn btn-primary btn-sm" id="uploadDocBtn">+ Загрузить документ</button>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" id="generateActBtn">+ Сформировать акт</button>
+              <button class="btn btn-primary btn-sm" id="uploadDocBtn">+ Загрузить документ</button>
+            </div>
           </div>
           <table class="doc-table">
             <thead><tr><th>Документ</th><th>Категория</th><th>Загрузил</th><th>Дата</th><th>Размер</th><th></th></tr></thead>
@@ -849,6 +852,54 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="teamModalClose">Готово</button>
+    </div>
+  </div>
+</div>
+
+<!-- ACT GENERATION MODAL -->
+<div class="modal-overlay" id="actModalOverlay">
+  <div class="modal modal-wide">
+    <h3>Сформировать акт</h3>
+
+    <div class="field-grid">
+      <div class="field"><label>Тип акта</label>
+        <select id="actTypeInput">
+          <option value="transfer_priced">Акт приёма-передачи (с ценами)</option>
+          <option value="transfer_plain">Акт приёма-передачи (без цен)</option>
+          <option value="defect">Дефектный акт</option>
+        </select>
+      </div>
+      <div class="field"><label>Номер акта</label><input id="actNumberInput" placeholder="например, 01"></div>
+      <div class="field"><label>Дата</label><input type="date" id="actDateInput"></div>
+    </div>
+
+    <div class="field"><label>Объект</label><input id="actObjectInput" placeholder="Название проекта / объекта"></div>
+
+    <div class="field-grid">
+      <div class="field"><label id="actCustomerLabel">Заказчик</label><textarea id="actCustomerInput" rows="2" placeholder="ТОО «Заказчик», БИН ..., адрес ..."></textarea></div>
+      <div class="field"><label id="actContractorLabel">Исполнитель</label><textarea id="actContractorInput" rows="2" placeholder="[Название компании], БИН [...], адрес [...]"></textarea></div>
+    </div>
+
+    <div class="field">
+      <label>Позиции (по одной на строку — например «Школьные парты x120, 25000» или для дефектного акта «Стул x1 — треснута ножка»)</label>
+      <textarea id="actItemsRaw" rows="4" placeholder="Школьные парты (2-местные) x120, 25000"></textarea>
+      <div style="margin-top:8px;"><button type="button" class="btn btn-ghost btn-sm" id="actParseItemsBtn">Разобрать список</button></div>
+    </div>
+
+    <div id="actItemsPreviewWrap" style="display:none;margin-bottom:14px;">
+      <table class="doc-table" id="actItemsTable"></table>
+    </div>
+
+    <div class="field"><label id="actNotesLabel">Примечания</label><textarea id="actNotesInput" rows="2" placeholder="необязательно"></textarea></div>
+
+    <div class="field-grid">
+      <div class="field"><label id="actSigner1Label">Сдал (должность, Ф.И.О.)</label><input id="actSigner1Input" placeholder="например, Менеджер проекта А. Иванов"></div>
+      <div class="field"><label id="actSigner2Label">Принял (должность, Ф.И.О.)</label><textarea id="actSigner2Input" rows="2" placeholder="например, Завхоз Б. Петров"></textarea></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="actModalCancel">Отмена</button>
+      <button class="btn btn-primary" id="actModalGenerate">Сформировать и скачать .docx</button>
     </div>
   </div>
 </div>
@@ -1285,7 +1336,7 @@ function renderDocs(projectId){
     </tr>`).join('');
 }
 function catColor(cat){
-  const m = {'Контракт':'#dbeafe','План этажа':'#fce7f3','Спецификация':'#ede9fe','Накладная':'#dcfce7','Разрешение':'#fef3c7','Фото':'#f2f4f7','Закупка':'#fee2e2'};
+  const m = {'Контракт':'#dbeafe','План этажа':'#fce7f3','Спецификация':'#ede9fe','Накладная':'#dcfce7','Разрешение':'#fef3c7','Фото':'#f2f4f7','Закупка':'#fee2e2','Акт':'#cffafe'};
   return m[cat] || '#f2f4f7';
 }
 document.getElementById('uploadDocBtn').addEventListener('click', ()=>showToast('Здесь открылось бы окно загрузки (drag & drop, автокатегоризация).'));
@@ -1340,6 +1391,22 @@ document.getElementById('taskModalSave').addEventListener('click', ()=>{
 /* ===================== ADD PROJECT MODAL ===================== */
 const taskAssigneeSelect = document.getElementById('taskAssigneeInput');
 taskAssigneeSelect.innerHTML = Object.keys(TEAM).map(n=>`<option value="${n}">${n} — ${TEAM[n]}</option>`).join('');
+
+/* Команда теперь живёт в Firestore (см. TEAM_SEED выше) и может меняться
+   в любой момент через карточку "Команда". Этот helper перестраивает все
+   select'ы, которые раньше заполнялись один раз из статичного TEAM —
+   вызывается при каждом onSnapshot по коллекции `team`. Объявлена как
+   function-declaration (хойстится), но НЕ вызывается здесь сразу: на
+   момент исполнения этой строки скрипта `updateBySelect`/`refreshChatSenderOptions`
+   ниже по файлу ещё не инициализированы (let/const, TDZ) — первый реальный
+   вызов придёт из onSnapshot('team') в startRealtimeListeners. */
+function refreshTeamDependentSelects(){
+  const opts = Object.keys(TEAM).map(n=>`<option value="${n}">${n} — ${TEAM[n]}</option>`).join('');
+  taskAssigneeSelect.innerHTML = opts;
+  updateBySelect.innerHTML = opts;
+  refreshManagerAddOptions();
+  refreshChatSenderOptions();
+}
 
 /* Руководители проекта — мультивыбор тегами (из команды или свободным текстом),
    а не один жёсткий select. Храним массив managers[]; manager (строка, первый
@@ -1448,6 +1515,7 @@ document.getElementById('projectModalSave').addEventListener('click', ()=>{
   };
   if(editingProjectId){
     db.collection('projects').doc(editingProjectId).update(proj).then(()=>{
+      logActivity(`отредактировал(а) проект «${proj.name}»`, proj.manager);
       closeProjectModal();
       showToast('Проект обновлён.');
       if(currentProjectId===editingProjectId) openProject(editingProjectId);
@@ -1456,6 +1524,7 @@ document.getElementById('projectModalSave').addEventListener('click', ()=>{
     proj.progress = 0;
     proj.spent = 0;
     db.collection('projects').add(proj).then(()=>{
+      logActivity(`создал(а) проект «${proj.name}»`, proj.manager);
       closeProjectModal();
       showToast('Проект добавлен.');
     }).catch(err=>showToast('Ошибка сохранения проекта: '+err.message));
@@ -1485,9 +1554,62 @@ document.getElementById('updateModalSave').addEventListener('click', ()=>{
     date: document.getElementById('updateDateInput').value || TODAY.toISOString().slice(0,10),
   };
   db.collection('changelog').add(entry).then(()=>{
+    logActivity(`добавил(а) запись в историю: «${title}»`, entry.by);
     closeUpdateModal();
     showToast('Запись добавлена.');
   }).catch(err=>showToast('Ошибка сохранения записи: '+err.message));
+});
+
+/* ===================== TEAM MODAL (roster editor) ===================== */
+function openTeamModal(){
+  document.getElementById('teamNewNameInput').value='';
+  document.getElementById('teamNewRoleInput').value='';
+  renderTeamEditList();
+  document.getElementById('teamModalOverlay').classList.add('show');
+}
+function closeTeamModal(){ document.getElementById('teamModalOverlay').classList.remove('show'); }
+document.getElementById('openTeamModalBtn').addEventListener('click', openTeamModal);
+document.getElementById('teamModalClose').addEventListener('click', closeTeamModal);
+
+function renderTeamEditList(){
+  const wrap = document.getElementById('teamEditList');
+  if(!wrap) return;
+  if(teamDocs.length===0){
+    wrap.innerHTML = `<div class="team-empty">Команда пока пуста — добавьте первого участника ниже.</div>`;
+    return;
+  }
+  wrap.innerHTML = teamDocs.map(m=>`
+    <div class="team-edit-row">
+      <div class="mini-avatar" style="width:30px;height:30px;font-size:11px;">${initials(m.name)}</div>
+      <div class="team-edit-row-info">
+        <div class="team-edit-row-name">${escapeHtml(m.name)}</div>
+        <div class="team-edit-row-role">${escapeHtml(m.role||'')}</div>
+      </div>
+      <button type="button" class="icon-btn" title="Удалить" data-remove-team="${m.id}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6"/></svg>
+      </button>
+    </div>`).join('');
+  wrap.querySelectorAll('[data-remove-team]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const m = teamDocs.find(x=>x.id===btn.dataset.removeTeam);
+      if(!m) return;
+      if(!confirm(`Удалить ${m.name} из команды? Уже назначенные на них задачи/проекты не изменятся.`)) return;
+      db.collection('team').doc(m.id).delete().then(()=>{
+        showToast('Участник удалён.');
+      }).catch(err=>showToast('Ошибка удаления участника: '+err.message));
+    });
+  });
+}
+document.getElementById('teamAddMemberBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('teamNewNameInput').value.trim();
+  const role = document.getElementById('teamNewRoleInput').value.trim();
+  if(!name){ showToast('Введите имя участника.'); return; }
+  if(TEAM[name]!==undefined){ showToast('Участник с таким именем уже есть в команде.'); return; }
+  db.collection('team').add({ name, role }).then(()=>{
+    document.getElementById('teamNewNameInput').value='';
+    document.getElementById('teamNewRoleInput').value='';
+    showToast('Участник добавлен.');
+  }).catch(err=>showToast('Ошибка добавления участника: '+err.message));
 });
 
 /* ===================== HELPERS ===================== */
@@ -1498,9 +1620,137 @@ function fmtDate(d){
 function initials(name){
   return name.split(' ').map(p=>p.replace('.','')).join('').slice(0,2).toUpperCase();
 }
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function fmtDateTime(iso){
+  const dt = new Date(iso);
+  if(isNaN(dt)) return '';
+  return dt.toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+function timeAgo(iso){
+  const dt = new Date(iso);
+  if(isNaN(dt)) return '';
+  const sec = Math.max(0, Math.round((Date.now()-dt.getTime())/1000));
+  if(sec<60) return 'только что';
+  const min = Math.round(sec/60);
+  if(min<60) return min+' мин назад';
+  const hr = Math.round(min/60);
+  if(hr<24) return hr+' ч назад';
+  const day = Math.round(hr/24);
+  if(day<7) return day+' дн назад';
+  return fmtDateTime(iso);
+}
+
+/* ===================== TEAM CHAT (общий канал) ===================== */
+const chatSenderSelect = document.getElementById('chatSenderSelect');
+function refreshChatSenderOptions(){
+  const names = Object.keys(TEAM);
+  chatSenderSelect.innerHTML = names.map(n=>`<option value="${n}">${n}</option>`).join('');
+  const saved = localStorage.getItem('chatSenderName');
+  if(saved && names.includes(saved)) chatSenderSelect.value = saved;
+}
+chatSenderSelect.addEventListener('change', ()=>{
+  try{ localStorage.setItem('chatSenderName', chatSenderSelect.value); }catch(e){}
+});
+function renderChatMessages(){
+  const wrap = document.getElementById('chatMessagesWrap');
+  if(!wrap) return;
+  if(chatMessages.length===0){
+    wrap.innerHTML = `<div class="chat-empty">Сообщений пока нет — начните разговор.</div>`;
+    return;
+  }
+  wrap.innerHTML = chatMessages.map(m=>`
+    <div class="chat-msg">
+      <div class="mini-avatar" style="width:26px;height:26px;font-size:10px;flex-shrink:0;">${initials(m.by||'?')}</div>
+      <div class="chat-msg-body">
+        <div class="chat-msg-head"><span class="chat-msg-name">${escapeHtml(m.by||'—')}</span><span class="chat-msg-time">${fmtDateTime(m.at)}</span></div>
+        <div class="chat-msg-text">${escapeHtml(m.text)}</div>
+      </div>
+    </div>`).join('');
+  wrap.scrollTop = wrap.scrollHeight;
+}
+function sendChatMessage(){
+  const input = document.getElementById('chatMessageInput');
+  const text = input.value.trim();
+  if(!text) return;
+  const by = chatSenderSelect.value || Object.keys(TEAM)[0] || 'Неизвестно';
+  db.collection('messages').add({ by, text, at: new Date().toISOString() }).then(()=>{
+    input.value='';
+  }).catch(err=>showToast('Ошибка отправки сообщения: '+err.message));
+}
+document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
+document.getElementById('chatMessageInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); sendChatMessage(); }
+});
+
+/* ===================== ACTIVITY LOG + FEED ===================== */
+/* Лёгкий журнал действий — НЕ включает отправку сообщений в чат (иначе
+   лента дублировала бы чат). Пишется при создании задачи, смене статуса
+   на канбане, создании/редактировании проекта и добавлении записи в
+   историю изменений. */
+function logActivity(text, by){
+  db.collection('activity').add({ text, by: by||'—', at: new Date().toISOString() })
+    .catch(err=>console.error('Ошибка записи в ленту событий:', err));
+}
+function renderActivityFeed(){
+  const wrap = document.getElementById('activityFeedWrap');
+  if(!wrap) return;
+  if(activityLog.length===0){
+    wrap.innerHTML = `<div class="team-empty">Событий пока нет.</div>`;
+    return;
+  }
+  const sorted = [...activityLog].sort((a,b)=> new Date(b.at)-new Date(a.at)).slice(0,20);
+  wrap.innerHTML = sorted.map(a=>`
+    <div class="activity-row">
+      <div class="mini-avatar" style="width:26px;height:26px;font-size:10px;flex-shrink:0;">${initials(a.by||'?')}</div>
+      <div class="activity-body">
+        <div><b>${escapeHtml(a.by||'—')}</b> ${escapeHtml(a.text)}</div>
+        <div class="activity-time">${timeAgo(a.at)}</div>
+      </div>
+    </div>`).join('');
+}
+
+/* ===================== TEAM PANEL (roster + presence) ===================== */
+/* "Онлайн" — не отдельный heartbeat-механизм, а честная производная от
+   последней активности человека (сообщение в чате или запись в ленте
+   событий за последние 15 минут). Совмещает ростер и присутствие в одной
+   карточке "Команда" на дашборде. */
+const PRESENCE_WINDOW_MS = 15*60*1000;
+function lastSeenFor(name){
+  let latest = null;
+  chatMessages.forEach(m=>{ if(m.by===name){ const t=new Date(m.at); if(!latest||t>latest) latest=t; } });
+  activityLog.forEach(a=>{ if(a.by===name){ const t=new Date(a.at); if(!latest||t>latest) latest=t; } });
+  return latest;
+}
+function renderTeamPanel(){
+  const wrap = document.getElementById('teamPanelWrap');
+  if(!wrap) return;
+  const names = Object.keys(TEAM);
+  if(names.length===0){
+    wrap.innerHTML = `<div class="team-empty">Команда пуста — нажмите «Управление» выше.</div>`;
+    return;
+  }
+  wrap.innerHTML = names.map(n=>{
+    const seen = lastSeenFor(n);
+    const online = seen && (Date.now()-seen.getTime() < PRESENCE_WINDOW_MS);
+    return `<div class="team-row">
+      <div class="team-row-avatar-wrap">
+        <div class="mini-avatar" style="width:30px;height:30px;font-size:11px;">${initials(n)}</div>
+        <div class="presence-dot ${online?'online':''}"></div>
+      </div>
+      <div class="team-row-info">
+        <div class="team-row-name">${escapeHtml(n)}</div>
+        <div class="team-row-role">${escapeHtml(TEAM[n]||'')}</div>
+      </div>
+      <div class="team-row-seen">${online ? 'онлайн' : (seen ? timeAgo(seen.toISOString()) : '—')}</div>
+    </div>`;
+  }).join('');
+}
 
 /* ===================== AUTH GATE ===================== */
 let unsubProjects=null, unsubTasks=null, unsubDocuments=null, unsubChangelog=null, unsubModuleSettings=null;
+let unsubTeam=null, unsubMessages=null, unsubActivity=null;
 
 function showApp(user){
   document.getElementById('loginOverlay').style.display='none';
@@ -1520,6 +1770,9 @@ function showLogin(){
   if(unsubDocuments){ unsubDocuments(); unsubDocuments=null; }
   if(unsubChangelog){ unsubChangelog(); unsubChangelog=null; }
   if(unsubModuleSettings){ unsubModuleSettings(); unsubModuleSettings=null; }
+  if(unsubTeam){ unsubTeam(); unsubTeam=null; }
+  if(unsubMessages){ unsubMessages(); unsubMessages=null; }
+  if(unsubActivity){ unsubActivity(); unsubActivity=null; }
 }
 
 auth.onAuthStateChanged(user=>{
@@ -1553,6 +1806,7 @@ document.getElementById('currentUserEmail').addEventListener('click', ()=>auth.s
 function startRealtimeListeners(){
   seedInitialDataIfNeeded();
   seedChangelogIfNeeded();
+  seedTeamIfNeeded();
 
   unsubProjects = db.collection('projects').onSnapshot(snap=>{
     projects = snap.docs.map(d=>({ id:d.id, ...d.data() }));
@@ -1590,6 +1844,28 @@ function startRealtimeListeners(){
     try{ localStorage.setItem('moduleSettings', JSON.stringify(moduleSettings)); }catch(e){}
     applyModuleSettings();
   }, err=>showToast('Ошибка чтения настроек модулей: '+err.message));
+
+  unsubTeam = db.collection('team').onSnapshot(snap=>{
+    teamDocs = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    TEAM = {};
+    teamDocs.forEach(m=>{ TEAM[m.name] = m.role; });
+    refreshTeamDependentSelects();
+    renderTeamEditList();
+    renderTeamPanel();
+    renderActivityFeed();
+  }, err=>showToast('Ошибка чтения команды: '+err.message));
+
+  unsubMessages = db.collection('messages').orderBy('at','asc').onSnapshot(snap=>{
+    chatMessages = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    renderChatMessages();
+    renderTeamPanel();
+  }, err=>showToast('Ошибка чтения чата: '+err.message));
+
+  unsubActivity = db.collection('activity').onSnapshot(snap=>{
+    activityLog = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    renderActivityFeed();
+    renderTeamPanel();
+  }, err=>showToast('Ошибка чтения ленты событий: '+err.message));
 }
 
 function seedInitialDataIfNeeded(){
@@ -1618,9 +1894,23 @@ function seedChangelogIfNeeded(){
     batch.commit().catch(err=>console.error('Ошибка начальной загрузки истории изменений:', err));
   });
 }
+
+function seedTeamIfNeeded(){
+  db.collection('meta').doc('teamSeedStatus').get().then(doc=>{
+    if(doc.exists) return;
+    const batch = db.batch();
+    Object.entries(TEAM_SEED).forEach(([name,role])=>{
+      batch.set(db.collection('team').doc(), { name, role });
+    });
+    batch.set(db.collection('meta').doc('teamSeedStatus'), { done:true, at:new Date().toISOString() });
+    batch.commit().catch(err=>console.error('Ошибка начальной загрузки команды:', err));
+  });
+}
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="supplier-ai.js"></script>
 <script src="compare-tools.js"></script>
+<script src="act-generator.js"></script>
 </body>
 </html>
