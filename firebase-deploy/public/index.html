@@ -623,6 +623,10 @@
             style="padding:9px 22px;font-size:13px;font-weight:600;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--text-dim);cursor:pointer;">
             Полнота спецификации
           </button>
+          <button class="cmp-tab" data-cmp-tab="catalog"
+            style="padding:9px 22px;font-size:13px;font-weight:600;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--text-dim);cursor:pointer;">
+            Подбор по каталогу
+          </button>
         </div>
 
         <!-- ── Tab: Match ── -->
@@ -689,6 +693,63 @@
             </button>
           </div>
           <div id="completenessResultsWrap"></div>
+        </div>
+
+        <!-- ── Tab: Catalog Matching ── -->
+        <div id="cmpTabCatalog" style="display:none;">
+          <p style="font-size:12.5px;color:var(--text-dim);margin-bottom:16px;">
+            Загрузите ваш перечень позиций и каталог — система найдёт до 3 вариантов из каталога для каждой позиции.
+            Выберите подходящий вариант и экспортируйте результат в Excel.
+          </p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">
+
+            <!-- Zone: Your Items -->
+            <div class="cmp-drop-zone" id="dropZoneItems"
+              style="border:2px dashed var(--border);border-radius:14px;padding:16px;background:var(--bg);transition:border-color .15s,background .15s;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <span style="font-size:11.5px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">Ваши позиции</span>
+                <button onclick="document.getElementById('priceListFileItems').click()"
+                  style="font-size:11.5px;padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:white;cursor:pointer;color:var(--text-dim);">
+                  📂 Файл
+                </button>
+              </div>
+              <div id="itemsFileLabel"
+                style="min-height:90px;display:flex;align-items:center;justify-content:center;
+                       color:var(--text-dim);font-size:12.5px;border-radius:8px;
+                       border:1px dashed var(--border);background:white;padding:12px;text-align:center;">
+                Перетащите или выберите файл (.xlsx / .csv)<br>
+                <span style="font-size:11px;margin-top:4px;display:block;">Колонки: наименование, кол-во, код, марка, модель</span>
+              </div>
+              <input type="file" id="priceListFileItems" accept=".xlsx,.xls,.csv" style="display:none;">
+            </div>
+
+            <!-- Zone: Catalog -->
+            <div class="cmp-drop-zone" id="dropZoneCatalog"
+              style="border:2px dashed var(--border);border-radius:14px;padding:16px;background:var(--bg);transition:border-color .15s,background .15s;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <span style="font-size:11.5px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">Каталог</span>
+                <button onclick="document.getElementById('priceListFileCatalog').click()"
+                  style="font-size:11.5px;padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:white;cursor:pointer;color:var(--text-dim);">
+                  📂 Файл
+                </button>
+              </div>
+              <div id="catalogFileLabel"
+                style="min-height:90px;display:flex;align-items:center;justify-content:center;
+                       color:var(--text-dim);font-size:12.5px;border-radius:8px;
+                       border:1px dashed var(--border);background:white;padding:12px;text-align:center;">
+                Перетащите или выберите файл (.xlsx / .csv)<br>
+                <span style="font-size:11px;margin-top:4px;display:block;">Гос. каталог или прайс поставщика</span>
+              </div>
+              <input type="file" id="priceListFileCatalog" accept=".xlsx,.xls,.csv" style="display:none;">
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;margin-bottom:28px;">
+            <button class="btn btn-primary" id="runCatalogMatchBtn" style="padding:10px 36px;font-size:14px;font-weight:700;">
+              Подобрать по каталогу →
+            </button>
+          </div>
+          <div id="catalogMatchResultsWrap"></div>
         </div>
 
         <!-- Legacy stubs (kept for JS compat, not visible) -->
@@ -1894,4 +1955,72 @@ function startRealtimeListeners(){
     applyModuleSettings();
   }, err=>showToast('Ошибка чтения настроек модулей: '+err.message));
 
-  unsubTeam = db.collection('team').on
+  unsubTeam = db.collection('team').onSnapshot(snap=>{
+    teamDocs = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    TEAM = {};
+    teamDocs.forEach(m=>{ TEAM[m.name] = m.role; });
+    refreshTeamDependentSelects();
+    renderTeamEditList();
+    renderTeamPanel();
+    renderActivityFeed();
+  }, err=>showToast('Ошибка чтения команды: '+err.message));
+
+  unsubMessages = db.collection('messages').orderBy('at','asc').onSnapshot(snap=>{
+    chatMessages = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    renderChatMessages();
+    renderTeamPanel();
+  }, err=>showToast('Ошибка чтения чата: '+err.message));
+
+  unsubActivity = db.collection('activity').onSnapshot(snap=>{
+    activityLog = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    renderActivityFeed();
+    renderTeamPanel();
+  }, err=>showToast('Ошибка чтения ленты событий: '+err.message));
+}
+
+function seedInitialDataIfNeeded(){
+  db.collection('meta').doc('seedStatus').get().then(doc=>{
+    if(doc.exists) return;
+    const batch = db.batch();
+    const projRef = db.collection('projects').doc();
+    batch.set(projRef, SEED_PROJECT);
+    SEED_TASKS.forEach(t=>{
+      batch.set(db.collection('tasks').doc(), { ...t, projectId: projRef.id });
+    });
+    batch.set(db.collection('documents').doc(), { ...SEED_DOC, projectId: projRef.id });
+    batch.set(db.collection('meta').doc('seedStatus'), { done:true, at:new Date().toISOString() });
+    batch.commit().catch(err=>console.error('Ошибка начальной загрузки данных:', err));
+  });
+}
+
+function seedChangelogIfNeeded(){
+  db.collection('meta').doc('changelogSeedStatus').get().then(doc=>{
+    if(doc.exists) return;
+    const batch = db.batch();
+    SEED_CHANGELOG.forEach(entry=>{
+      batch.set(db.collection('changelog').doc(), entry);
+    });
+    batch.set(db.collection('meta').doc('changelogSeedStatus'), { done:true, at:new Date().toISOString() });
+    batch.commit().catch(err=>console.error('Ошибка начальной загрузки истории изменений:', err));
+  });
+}
+
+function seedTeamIfNeeded(){
+  db.collection('meta').doc('teamSeedStatus').get().then(doc=>{
+    if(doc.exists) return;
+    const batch = db.batch();
+    Object.entries(TEAM_SEED).forEach(([name,role])=>{
+      batch.set(db.collection('team').doc(), { name, role });
+    });
+    batch.set(db.collection('meta').doc('teamSeedStatus'), { done:true, at:new Date().toISOString() });
+    batch.commit().catch(err=>console.error('Ошибка начальной загрузки команды:', err));
+  });
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="supplier-ai.js"></script>
+<script src="compare-tools.js"></script>
+<script src="act-generator.js"></script>
+</body>
+</html>
