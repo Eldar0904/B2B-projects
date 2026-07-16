@@ -159,6 +159,11 @@
   .doc-table tr:hover td{background:var(--bg);}
   .doc-icon{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
   .doc-name-cell{display:flex;align-items:center;gap:10px;}
+  .doc-empty td{text-align:center;color:var(--text-faint);font-size:13px;padding:28px 12px;}
+  .doc-upload-zone{border:1.5px dashed var(--border);border-radius:10px;padding:22px 16px;text-align:center;cursor:pointer;background:var(--bg);}
+  .doc-upload-zone:hover,.doc-upload-zone.dragover{border-color:var(--accent);background:var(--accent-light);}
+  .doc-upload-zone-name{font-size:13px;font-weight:600;margin-top:8px;word-break:break-word;}
+  .doc-upload-zone-hint{font-size:12px;color:var(--text-dim);margin-top:4px;}
   .icon-btn{width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .icon-btn svg{width:14px;height:14px;color:var(--text-dim);}
   .icon-btn:hover{background:var(--bg);}
@@ -954,6 +959,27 @@
   </div>
 </div>
 
+<!-- DOCUMENT UPLOAD MODAL -->
+<div class="modal-overlay" id="docUploadModalOverlay">
+  <div class="modal">
+    <h3>Загрузить документ</h3>
+    <input type="file" id="docFileInput" hidden accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.zip,.dwg,.txt">
+    <div class="doc-upload-zone" id="docUploadZone">
+      <div style="font-size:24px;line-height:1;">📄</div>
+      <div class="doc-upload-zone-name" id="docUploadFileName">Нажмите или перетащите файл</div>
+      <div class="doc-upload-zone-hint">PDF, Word, Excel, изображения, ZIP — до 50 МБ</div>
+    </div>
+    <div class="field" style="margin-top:16px;">
+      <label>Категория</label>
+      <select id="docCategoryInput"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="docUploadCancel">Отмена</button>
+      <button class="btn btn-primary" id="docUploadSave" disabled>Загрузить</button>
+    </div>
+  </div>
+</div>
+
 <!-- ACT GENERATION MODAL -->
 <div class="modal-overlay" id="actModalOverlay">
   <div class="modal modal-wide">
@@ -1015,6 +1041,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script>
 /* ===================== FIREBASE ===================== */
 /* Замените apiKey / messagingSenderId / appId на значения из
@@ -1031,6 +1058,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+const storage = firebase.storage();
 
 /* ===================== DATA ===================== */
 const TYPE_ICON = { 'Школа':'🏫', 'Детский сад':'🧸', 'Университет':'🎓', 'Музыкальная школа':'🎵' };
@@ -1483,22 +1511,172 @@ kanbanBoardEl.addEventListener('drop', e=>{
 });
 
 function renderDocs(projectId){
-  const docs = documents.filter(d=>d.projectId===projectId);
-  document.getElementById('docTableBody').innerHTML = docs.map(d=>`
-    <tr>
-      <td><div class="doc-name-cell"><div class="doc-icon" style="background:${catColor(d.category)}">${d.name.split('.').pop().toUpperCase().slice(0,3)}</div>${d.name}</div></td>
-      <td><span class="badge badge-gray">${d.category}</span></td>
-      <td>${d.by}</td>
+  const docs = documents.filter(d=>d.projectId===projectId)
+    .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const body = document.getElementById('docTableBody');
+  if(!body) return;
+  if(docs.length===0){
+    body.innerHTML = `<tr class="doc-empty"><td colspan="6">Документов пока нет — загрузите файл или сформируйте акт.</td></tr>`;
+    return;
+  }
+  body.innerHTML = docs.map(d=>`
+    <tr data-doc-id="${d.id}">
+      <td><div class="doc-name-cell"><div class="doc-icon" style="background:${catColor(d.category)}">${fileExtLabel(d.name)}</div>${escapeHtml(d.name)}</div></td>
+      <td><span class="badge badge-gray">${escapeHtml(d.category||'—')}</span></td>
+      <td>${escapeHtml(d.by||'—')}</td>
       <td>${fmtDate(d.date)}</td>
-      <td>${d.size}</td>
-      <td><button class="icon-btn" title="Download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 19h16"/></svg></button></td>
+      <td>${escapeHtml(d.size||'—')}</td>
+      <td style="white-space:nowrap;">
+        ${d.url ? `<button class="icon-btn" data-doc-action="download" title="Скачать"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 19h16"/></svg></button>` : ''}
+        <button class="icon-btn" data-doc-action="delete" title="Удалить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
+      </td>
     </tr>`).join('');
 }
+function fileExtLabel(name){
+  const ext = (name||'').split('.').pop();
+  return (ext||'?').toUpperCase().slice(0,3);
+}
 function catColor(cat){
-  const m = {'Контракт':'#dbeafe','План этажа':'#fce7f3','Спецификация':'#ede9fe','Накладная':'#dcfce7','Разрешение':'#fef3c7','Фото':'#f2f4f7','Закупка':'#fee2e2','Акт':'#cffafe'};
+  const m = {'Контракт':'#dbeafe','План этажа':'#fce7f3','Спецификация':'#ede9fe','Накладная':'#dcfce7','Разрешение':'#fef3c7','Фото':'#f2f4f7','Закупка':'#fee2e2','Акт':'#cffafe','Прочее':'#f2f4f7'};
   return m[cat] || '#f2f4f7';
 }
-document.getElementById('uploadDocBtn').addEventListener('click', ()=>showToast('Здесь открылось бы окно загрузки (drag & drop, автокатегоризация).'));
+const DOC_CATEGORIES = ['Спецификация','Контракт','План этажа','Накладная','Разрешение','Фото','Закупка','Акт','Прочее'];
+function formatFileSize(bytes){
+  if(!bytes && bytes !== 0) return '—';
+  if(bytes < 1024) return bytes+' Б';
+  if(bytes < 1024*1024) return Math.max(1, Math.round(bytes/1024))+' КБ';
+  return (bytes/(1024*1024)).toFixed(1)+' МБ';
+}
+function guessDocCategory(filename){
+  const lower = (filename||'').toLowerCase();
+  const ext = lower.split('.').pop();
+  if(/акт|act/.test(lower)) return 'Акт';
+  if(/договор|контракт|contract/.test(lower)) return 'Контракт';
+  if(/план|этаж|floor/.test(lower)) return 'План этажа';
+  if(/наклад|invoice/.test(lower)) return 'Накладная';
+  if(/разрешен|permit/.test(lower)) return 'Разрешение';
+  if(/закуп|supplier|кп|прайс/.test(lower)) return 'Закупка';
+  if(['jpg','jpeg','png','webp','gif'].includes(ext)) return 'Фото';
+  if(['xls','xlsx','csv'].includes(ext)) return 'Спецификация';
+  if(['pdf','doc','docx'].includes(ext)) return 'Спецификация';
+  return 'Прочее';
+}
+function sanitizeStorageFileName(name){
+  return (name||'file').replace(/[^\w.\-()а-яА-Я\s]/g,'_').replace(/\s+/g,'_').slice(0,120);
+}
+function getUploaderName(){
+  if(currentUserProfile && currentUserProfile.displayName) return currentUserProfile.displayName;
+  if(auth.currentUser && auth.currentUser.email) return auth.currentUser.email.split('@')[0];
+  return '—';
+}
+function uploadProjectBlob(projectId, filename, blob){
+  const safeName = sanitizeStorageFileName(filename);
+  const storagePath = `projects/${projectId}/files/${Date.now()}_${safeName}`;
+  const ref = storage.ref(storagePath);
+  return ref.put(blob).then(s=>s.ref.getDownloadURL()).then(url=>({ url, storagePath, size: blob.size }));
+}
+let pendingDocFile = null;
+const docCategoryInput = document.getElementById('docCategoryInput');
+docCategoryInput.innerHTML = DOC_CATEGORIES.map(c=>`<option value="${c}">${c}</option>`).join('');
+function setPendingDocFile(file){
+  pendingDocFile = file || null;
+  document.getElementById('docUploadFileName').textContent = file ? file.name : 'Нажмите или перетащите файл';
+  document.getElementById('docUploadSave').disabled = !file;
+  if(file) docCategoryInput.value = guessDocCategory(file.name);
+}
+function openDocUploadModal(){
+  if(!currentProjectId){ showToast('Сначала откройте проект.'); return; }
+  pendingDocFile = null;
+  document.getElementById('docFileInput').value = '';
+  setPendingDocFile(null);
+  document.getElementById('docUploadModalOverlay').classList.add('show');
+}
+function closeDocUploadModal(){
+  document.getElementById('docUploadModalOverlay').classList.remove('show');
+  pendingDocFile = null;
+  document.getElementById('docFileInput').value = '';
+  setPendingDocFile(null);
+}
+document.getElementById('uploadDocBtn').addEventListener('click', openDocUploadModal);
+document.getElementById('docUploadCancel').addEventListener('click', closeDocUploadModal);
+document.getElementById('docUploadSave').addEventListener('click', ()=>{
+  if(!pendingDocFile || !currentProjectId) return;
+  const saveBtn = document.getElementById('docUploadSave');
+  const file = pendingDocFile;
+  if(file.size > 50*1024*1024){ showToast('Файл больше 50 МБ — выберите меньший.'); return; }
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Загрузка…';
+  const by = getUploaderName();
+  const category = docCategoryInput.value;
+  const date = new Date().toISOString().slice(0,10);
+  uploadProjectBlob(currentProjectId, file.name, file).then(({ url, storagePath, size })=>{
+    return db.collection('documents').add({
+      projectId: currentProjectId,
+      name: file.name,
+      category,
+      by,
+      date,
+      size: formatFileSize(size),
+      url,
+      storagePath,
+      mimeType: file.type || '',
+      uploadedAt: new Date().toISOString(),
+    });
+  }).then(()=>{
+    logActivity(`загрузил(а) документ «${file.name}»`, by);
+    showToast('Документ загружен.');
+    closeDocUploadModal();
+  }).catch(err=>showToast('Ошибка загрузки: '+err.message))
+    .finally(()=>{
+      saveBtn.textContent = 'Загрузить';
+      saveBtn.disabled = !pendingDocFile;
+    });
+});
+const docUploadZone = document.getElementById('docUploadZone');
+const docFileInput = document.getElementById('docFileInput');
+docUploadZone.addEventListener('click', ()=>docFileInput.click());
+docFileInput.addEventListener('change', ()=>{
+  const file = docFileInput.files && docFileInput.files[0];
+  if(file) setPendingDocFile(file);
+});
+docUploadZone.addEventListener('dragover', e=>{ e.preventDefault(); docUploadZone.classList.add('dragover'); });
+docUploadZone.addEventListener('dragleave', ()=>docUploadZone.classList.remove('dragover'));
+docUploadZone.addEventListener('drop', e=>{
+  e.preventDefault();
+  docUploadZone.classList.remove('dragover');
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if(file) setPendingDocFile(file);
+});
+document.getElementById('docTableBody').addEventListener('click', e=>{
+  const btn = e.target.closest('[data-doc-action]');
+  if(!btn) return;
+  const row = btn.closest('[data-doc-id]');
+  if(!row) return;
+  const doc = documents.find(d=>d.id===row.dataset.docId);
+  if(!doc) return;
+  if(btn.dataset.docAction==='download' && doc.url){
+    const a = document.createElement('a');
+    a.href = doc.url;
+    a.download = doc.name || 'document';
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.click();
+    return;
+  }
+  if(btn.dataset.docAction==='delete'){
+    if(!confirm(`Удалить «${doc.name}» из реестра?`)) return;
+    const removeMeta = ()=>db.collection('documents').doc(doc.id).delete();
+    const chain = doc.storagePath
+      ? storage.ref(doc.storagePath).delete().catch(err=>{
+          if(err.code !== 'storage/object-not-found') throw err;
+        }).then(removeMeta)
+      : removeMeta();
+    chain.then(()=>{
+      logActivity(`удалил(а) документ «${doc.name}»`, getUploaderName());
+      showToast('Документ удалён.');
+    }).catch(err=>showToast('Ошибка удаления: '+err.message));
+  }
+});
 
 /* ===================== UPDATES / HISTORY ===================== */
 function renderUpdates(){

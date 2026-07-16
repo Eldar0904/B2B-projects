@@ -14,6 +14,9 @@
      - projects             (array, kept in sync with Firestore)
      - db                   (firebase.firestore() instance)
      - auth                 (firebase.auth() instance)
+     - getUploaderName()    (display name helper from main script)
+     - formatFileSize()     (size formatter from main script)
+     - uploadProjectBlob(projectId, filename, blob)  (Storage upload helper)
      - showToast(msg)       (toast helper)
      - logActivity(text,by) (activity feed helper)
      - JSZip                (global, loaded via CDN script tag)
@@ -394,15 +397,23 @@ document.getElementById('actModalGenerate').addEventListener('click', ()=>{
     const filename = `Akt_${typeShort}_No${safeNumber}_${dateRaw}.docx`;
     triggerFileDownload(blob, filename);
 
-    const by = (auth.currentUser && auth.currentUser.email) ? auth.currentUser.email.split('@')[0] : '—';
-    db.collection('documents').add({
+    const by = (typeof getUploaderName === 'function')
+      ? getUploaderName()
+      : ((auth.currentUser && auth.currentUser.email) ? auth.currentUser.email.split('@')[0] : '—');
+    const saveDoc = meta => db.collection('documents').add({
       projectId: currentProjectId,
       name: filename,
       category: 'Акт',
       by,
       date: dateRaw,
-      size: `${Math.max(1, Math.round(blob.size/1024))} КБ`,
-    }).then(()=>{
+      size: formatFileSize(blob.size),
+      ...meta,
+    });
+    const persist = (typeof uploadProjectBlob === 'function' && currentProjectId)
+      ? uploadProjectBlob(currentProjectId, filename, blob).then(({ url, storagePath })=>saveDoc({ url, storagePath, mimeType: blob.type || '' }))
+      : saveDoc({ size: `${Math.max(1, Math.round(blob.size/1024))} КБ` });
+
+    persist.then(()=>{
       logActivity(`сформировал(а) «${cfg.label}» № ${ctx.number || 'б/н'}`, by);
     }).catch(err=>console.error('Ошибка записи акта в реестр документов:', err));
 
