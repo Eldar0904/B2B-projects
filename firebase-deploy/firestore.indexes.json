@@ -1,14 +1,4 @@
 {
-  "indexes": [
-    {
-      "collectionGroup": "dmMessages",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "participantUids", "arrayConfig": "CONTAINS" },
-        { "fieldPath": "threadId", "order": "ASCENDING" },
-        { "fieldPath": "at", "order": "ASCENDING" }
-      ]
-    }
-  ],
+  "indexes": [],
   "fieldOverrides": []
 }
