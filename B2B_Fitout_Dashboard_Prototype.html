@@ -510,7 +510,6 @@
               <div class="chat-panel-team" id="chatPanelTeam">
                 <div class="chat-messages" id="chatMessagesWrap"></div>
                 <div class="chat-input-row">
-                  <select id="chatSenderSelect"></select>
                   <input id="chatMessageInput" placeholder="Написать команде…" maxlength="500">
                   <button class="btn btn-primary btn-sm" id="chatSendBtn">→</button>
                 </div>
@@ -1609,7 +1608,7 @@ taskAssigneeSelect.innerHTML = Object.keys(TEAM).map(n=>`<option value="${n}">${
    select'ы, которые раньше заполнялись один раз из статичного TEAM —
    вызывается при каждом onSnapshot по коллекции `team`. Объявлена как
    function-declaration (хойстится), но НЕ вызывается здесь сразу: на
-   момент исполнения этой строки скрипта `updateBySelect`/`refreshChatSenderOptions`
+   момент исполнения этой строки скрипта `updateBySelect`/`refreshDmRecipientOptions`
    ниже по файлу ещё не инициализированы (let/const, TDZ) — первый реальный
    вызов придёт из onSnapshot('team') в startRealtimeListeners. */
 function refreshTeamDependentSelects(){
@@ -1617,7 +1616,7 @@ function refreshTeamDependentSelects(){
   taskAssigneeSelect.innerHTML = opts;
   updateBySelect.innerHTML = opts;
   refreshManagerAddOptions();
-  refreshChatSenderOptions();
+  refreshDmRecipientOptions();
 }
 
 /* Руководители проекта — мультивыбор тегами (из команды или свободным текстом),
@@ -1856,27 +1855,15 @@ function timeAgo(iso){
 }
 
 /* ===================== CHAT (общий + личные) ===================== */
-const chatSenderSelect = document.getElementById('chatSenderSelect');
 const chatDmRecipientSelect = document.getElementById('chatDmRecipientSelect');
 
 function makeThreadId(uidA, uidB){
   return [uidA, uidB].sort().join('_');
 }
-function getRegisteredDisplayNames(){
-  return [...new Set(registeredUsers.map(u=>u.displayName).filter(Boolean))]
-    .sort((a,b)=>a.localeCompare(b,'ru'));
-}
-function refreshChatSenderOptions(){
-  const names = getRegisteredDisplayNames();
-  if(!names.length){
-    chatSenderSelect.innerHTML = '<option value="">— нет пользователей —</option>';
-    return;
-  }
-  chatSenderSelect.innerHTML = names.map(n=>`<option value="${n}">${n}</option>`).join('');
-  const saved = localStorage.getItem('chatSenderName');
-  const mine = currentUserProfile && currentUserProfile.displayName;
-  if(saved && names.includes(saved)) chatSenderSelect.value = saved;
-  else if(mine && names.includes(mine)) chatSenderSelect.value = mine;
+function getTeamChatSenderName(){
+  if(currentUserProfile && currentUserProfile.displayName) return currentUserProfile.displayName;
+  if(auth.currentUser && auth.currentUser.email) return auth.currentUser.email.split('@')[0];
+  return 'Неизвестно';
 }
 function refreshDmRecipientOptions(){
   if(!chatDmRecipientSelect) return;
@@ -1897,9 +1884,6 @@ function setDmInputEnabled(on){
   document.getElementById('chatDmMessageInput').disabled = !on;
   document.getElementById('chatDmSendBtn').disabled = !on;
 }
-chatSenderSelect.addEventListener('change', ()=>{
-  try{ localStorage.setItem('chatSenderName', chatSenderSelect.value); }catch(e){}
-});
 chatDmRecipientSelect.addEventListener('change', ()=>{
   activeDmPeerUid = chatDmRecipientSelect.value || null;
   setDmInputEnabled(!!activeDmPeerUid);
@@ -1959,7 +1943,7 @@ function sendTeamMessage(){
   const input = document.getElementById('chatMessageInput');
   const text = input.value.trim();
   if(!text || !auth.currentUser) return;
-  const by = chatSenderSelect.value || (currentUserProfile && currentUserProfile.displayName) || 'Неизвестно';
+  const by = getTeamChatSenderName();
   db.collection('messages').add({
     type: 'team',
     by,
@@ -2275,7 +2259,6 @@ function startRealtimeListeners(){
     const me = auth.currentUser && registeredUsers.find(u=>u.uid===auth.currentUser.uid);
     if(me) currentUserProfile = me;
     updateUserChip();
-    refreshChatSenderOptions();
     refreshDmRecipientOptions();
   }, err=>showToast('Ошибка чтения пользователей: '+err.message));
 
