@@ -40,9 +40,11 @@
   .sidebar-foot{padding:14px;border-top:1px solid rgba(255,255,255,0.08);}
   .user-chip{display:flex;align-items:center;gap:10px;}
   .avatar{width:32px;height:32px;border-radius:50%;background:#4338ca;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
-  .user-meta{line-height:1.25;}
+  .user-meta{line-height:1.25;flex:1;min-width:0;}
   .user-name{font-size:13px;font-weight:600;}
-  .user-role{font-size:11px;color:#8a94a6;}
+  .user-role{font-size:11px;color:#8a94a6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .logout-btn{padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.18);background:transparent;color:#c4cad6;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0;}
+  .logout-btn:hover{background:rgba(255,255,255,0.08);color:#fff;border-color:rgba(255,255,255,0.28);}
 
   /* MAIN */
   .main{margin-left:240px;flex:1;display:flex;flex-direction:column;min-width:0;}
@@ -102,6 +104,7 @@
   .badge-red{background:var(--red-bg);color:var(--red);}
   .badge-blue{background:var(--blue-bg);color:var(--blue);}
   .badge-gray{background:#f2f4f7;color:var(--text-dim);}
+  .proj-card.is-closed,.proj-row.is-closed{opacity:.72;}
 
   /* PROJECTS LIST VIEW */
   .proj-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
@@ -296,6 +299,9 @@
   .login-field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;color:var(--text);}
   .login-field input{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;font-family:inherit;}
   .login-error{font-size:12.5px;color:var(--red);margin-bottom:10px;min-height:16px;}
+  .login-success{font-size:12.5px;color:var(--green);margin-bottom:10px;min-height:16px;}
+  .login-forgot{text-align:right;margin-top:6px;}
+  .login-forgot span{font-size:12px;color:var(--accent);cursor:pointer;font-weight:600;}
   .login-actions{display:flex;flex-direction:column;gap:8px;margin-top:6px;}
   .login-toggle{text-align:center;font-size:12.5px;color:var(--text-dim);margin-top:14px;cursor:pointer;}
   .login-toggle span{color:var(--accent);font-weight:600;}
@@ -315,13 +321,19 @@
     <div class="login-title" id="loginTitle">Вход</div>
     <div class="login-sub" id="loginSub">Войдите, чтобы открыть дэшборд проектов.</div>
     <div class="login-error" id="loginError"></div>
+    <div class="login-success" id="loginSuccess"></div>
     <div class="login-field">
       <label>Email</label>
       <input type="email" id="loginEmailInput" placeholder="you@pine.kz" autocomplete="email">
     </div>
-    <div class="login-field">
+    <div class="login-field" id="loginDisplayNameWrap" style="display:none;">
+      <label>Имя пользователя</label>
+      <input type="text" id="loginDisplayNameInput" placeholder="Например, А. Беков" autocomplete="name" maxlength="64">
+    </div>
+    <div class="login-field" id="loginPasswordWrap">
       <label>Пароль</label>
       <input type="password" id="loginPasswordInput" placeholder="••••••••" autocomplete="current-password">
+      <div class="login-forgot" id="loginForgotWrap"><span id="loginForgotBtn">Забыли пароль?</span></div>
     </div>
     <div class="login-actions">
       <button class="btn btn-primary" id="loginSubmitBtn" style="justify-content:center;">Войти</button>
@@ -393,8 +405,9 @@
         <div class="avatar" id="currentUserAvatar">--</div>
         <div class="user-meta">
           <div class="user-name" id="currentUserName">—</div>
-          <div class="user-role" id="currentUserEmail" style="cursor:pointer;" title="Нажмите, чтобы выйти">Выйти</div>
+          <div class="user-role" id="currentUserEmail">—</div>
         </div>
+        <button type="button" class="logout-btn" id="logoutBtn" title="Выйти из аккаунта">Выйти</button>
       </div>
     </div>
   </div>
@@ -1087,6 +1100,8 @@ let TEAM = { ...TEAM_SEED };
 let teamDocs = []; // [{id, name, role}] — нужны id для удаления/редактирования
 let activityLog = [];
 let chatMessages = [];
+let registeredUsers = [];
+let currentUserProfile = null;
 
 /* Эти три массива теперь живут в Firestore и заполняются через onSnapshot
    (см. startRealtimeListeners ниже). Здесь — только локальные зеркала. */
@@ -1097,7 +1112,7 @@ let changelog = [];
 let moduleSettings = {};
 
 /* Данные для разовой инициализации Firestore при первом запуске (см. seedInitialDataIfNeeded) */
-const SEED_PROJECT = { name:'Детская музыкальная школа — комплексное оснащение', type:'Музыкальная школа', location:'Казахстан (уточняется)', client:'Уточняется', progress:5, budget:0, spent:0, manager:'А. Беков', start:'2026-06-23', end:'2027-06-30', area:6608, rooms:232, floors:5, note:'Полная ВОР получена (файл «Копия Муз шк.xlsx»): 5 этажей, 232 помещения, 6 608 м². Из них 164 помещения уже расписаны по комплектации (7 697 позиций оборудования/мебели/инструментов), 68 — пока только с площадью, без спецификации. Полностью просчитаны и подтверждены поставщиками: Эстрада (×6 каб., ≈29.8 млн ₸) и Малый актовый зал им. Д. Тезекбаева на 81 место (≈25.6 млн ₸). Бюджет оставлен на 0 до завершения просчёта остальных 230 помещений. Ключевой контакт по музыкальным отделениям — Сурапбергенова Светлана Алмабаевна, 8 705 184 06 03.' };
+const SEED_PROJECT = { name:'Детская музыкальная школа — комплексное оснащение', type:'Музыкальная школа', location:'Казахстан (уточняется)', client:'Уточняется', status:'Активный', progress:5, budget:0, spent:0, manager:'А. Беков', start:'2026-06-23', end:'2027-06-30', area:6608, rooms:232, floors:5, note:'Полная ВОР получена (файл «Копия Муз шк.xlsx»): 5 этажей, 232 помещения, 6 608 м². Из них 164 помещения уже расписаны по комплектации (7 697 позиций оборудования/мебели/инструментов), 68 — пока только с площадью, без спецификации. Полностью просчитаны и подтверждены поставщиками: Эстрада (×6 каб., ≈29.8 млн ₸) и Малый актовый зал им. Д. Тезекбаева на 81 место (≈25.6 млн ₸). Бюджет оставлен на 0 до завершения просчёта остальных 230 помещений. Ключевой контакт по музыкальным отделениям — Сурапбергенова Светлана Алмабаевна, 8 705 184 06 03.' };
 const SEED_TASKS = [
   { title:'Подтвердить реальные данные проекта (заказчик, адрес, бюджет, сроки)', assignee:'А. Беков', due:'2026-06-26', status:'К выполнению' },
   { title:'Эстрада (×6 каб.) — запросить финальные КП у audio-pro.kz, stepline.kz, itc-audio.kz', assignee:'А. Беков', due:'2026-06-30', status:'В работе' },
@@ -1236,19 +1251,66 @@ function projectProgress(p){
   return computed===null ? (p.progress||0) : computed;
 }
 
+/* ===================== PROJECT STATUS (auto from tasks) ===================== */
+const PROJECT_STATUS_ACTIVE = 'Активный';
+const PROJECT_STATUS_CLOSED = 'Закрыт';
+
+function getProjectStatus(p){
+  return p.status === PROJECT_STATUS_CLOSED ? PROJECT_STATUS_CLOSED : PROJECT_STATUS_ACTIVE;
+}
+function isProjectActive(p){
+  return getProjectStatus(p) === PROJECT_STATUS_ACTIVE;
+}
+function activeProjects(){
+  return projects.filter(isProjectActive);
+}
+function projectStatusBadge(p){
+  return getProjectStatus(p) === PROJECT_STATUS_CLOSED
+    ? '<span class="badge badge-gray">Закрыт</span>'
+    : '<span class="badge badge-green">Активный</span>';
+}
+function syncAllProjectStatuses(){
+  projects.forEach(p=> syncProjectStatus(p.id));
+}
+const _statusSyncPending = new Set();
+function syncProjectStatus(projectId){
+  const p = projects.find(x=>x.id===projectId);
+  if(!p || _statusSyncPending.has(projectId)) return;
+  const pTasks = tasks.filter(t=>t.projectId===projectId);
+  if(pTasks.length === 0) return;
+  const allDone = pTasks.every(t=>t.status==='Готово');
+  const current = getProjectStatus(p);
+  if(allDone && current !== PROJECT_STATUS_CLOSED){
+    _statusSyncPending.add(projectId);
+    db.collection('projects').doc(projectId).update({ status: PROJECT_STATUS_CLOSED }).then(()=>{
+      logActivity(`проект «${p.name}» автоматически закрыт — все задачи выполнены`, p.manager || 'Система');
+      showToast(`Проект «${p.name}» закрыт — все задачи выполнены.`);
+    }).catch(err=>showToast('Ошибка авто-статуса проекта: '+err.message))
+      .finally(()=>_statusSyncPending.delete(projectId));
+  } else if(!allDone && current === PROJECT_STATUS_CLOSED){
+    _statusSyncPending.add(projectId);
+    db.collection('projects').doc(projectId).update({ status: PROJECT_STATUS_ACTIVE }).then(()=>{
+      logActivity(`проект «${p.name}» снова активен — есть открытые задачи`, p.manager || 'Система');
+      showToast(`Проект «${p.name}» снова активен.`);
+    }).catch(err=>showToast('Ошибка авто-статуса проекта: '+err.message))
+      .finally(()=>_statusSyncPending.delete(projectId));
+  }
+}
+
 /* ===================== DASHBOARD ===================== */
 function renderKPIs(){
+  const active = activeProjects();
   const openTasks = tasks.filter(t=>t.status!=='Готово');
   const overdue = openTasks.filter(t=>new Date(t.due+'T00:00:00') < TODAY).length;
   const dueWeek = openTasks.filter(t=>{
     const diff = (new Date(t.due+'T00:00:00') - TODAY)/86400000;
     return diff>=0 && diff<=7;
   }).length;
-  const totalBudget = projects.reduce((s,p)=>s+p.budget,0);
-  const totalSpent = projects.reduce((s,p)=>s+p.spent,0);
+  const totalBudget = active.reduce((s,p)=>s+p.budget,0);
+  const totalSpent = active.reduce((s,p)=>s+p.spent,0);
   const util = totalBudget ? Math.round(totalSpent/totalBudget*100) : 0;
 
-  document.getElementById('kpiProjects').textContent = projects.length;
+  document.getElementById('kpiProjects').textContent = active.length;
   document.getElementById('kpiOpenTasks').textContent = openTasks.length;
   document.getElementById('kpiOpenTasksDelta').textContent = overdue+' просрочено';
   document.getElementById('kpiDueWeek').textContent = dueWeek;
@@ -1259,12 +1321,17 @@ function renderKPIs(){
 function renderDashboard(){
   renderKPIs();
   const list = document.getElementById('dashProjectList');
-  list.innerHTML = projects.map(p=>{
+  const active = activeProjects();
+  if(active.length===0){
+    list.innerHTML = '<p style="padding:16px;font-size:13px;color:var(--text-dim);">Нет активных проектов — все задачи закрыты или проекты ещё не добавлены.</p>';
+    return;
+  }
+  list.innerHTML = active.map(p=>{
     const pct = projectProgress(p);
     return `<div class="proj-row" data-open="${p.id}">
       <div class="proj-tag" style="background:${TYPE_COLOR[p.type]||DEFAULT_TYPE_COLOR}">${TYPE_ICON[p.type]||DEFAULT_TYPE_ICON}</div>
       <div class="proj-info">
-        <div class="proj-name">${p.name}</div>
+        <div class="proj-name">${p.name} ${projectStatusBadge(p)}</div>
         <div class="proj-meta">${p.type||'Проект'} · ${p.location||'—'} · срок ${fmtDate(p.end)}</div>
       </div>
       <div class="proj-progress-wrap">
@@ -1301,14 +1368,20 @@ function roleBreakdownHTML(projectId){
 }
 function renderProjectCards(){
   const wrap = document.getElementById('projectCards');
-  wrap.innerHTML = projects.map(p=>{
+  const sorted = [...projects].sort((a,b)=>{
+    const sa = getProjectStatus(a) === PROJECT_STATUS_CLOSED ? 1 : 0;
+    const sb = getProjectStatus(b) === PROJECT_STATUS_CLOSED ? 1 : 0;
+    return sa - sb;
+  });
+  wrap.innerHTML = sorted.map(p=>{
     const doneTasks = tasks.filter(t=>t.projectId===p.id && t.status==='Готово').length;
     const totalTasks = tasks.filter(t=>t.projectId===p.id).length;
     const pct = projectProgress(p);
-    return `<div class="proj-card" data-open="${p.id}">
+    const closed = getProjectStatus(p) === PROJECT_STATUS_CLOSED;
+    return `<div class="proj-card${closed?' is-closed':''}" data-open="${p.id}">
       <div class="proj-card-top">
         <div>
-          <div class="proj-card-name">${TYPE_ICON[p.type]||DEFAULT_TYPE_ICON} ${p.name}</div>
+          <div class="proj-card-name">${TYPE_ICON[p.type]||DEFAULT_TYPE_ICON} ${p.name} ${projectStatusBadge(p)}</div>
           <div class="proj-card-loc">${p.location||'—'}${p.client?' · '+p.client:''}</div>
         </div>
       </div>
@@ -1345,7 +1418,7 @@ function openProject(id){
   const p = projects.find(x=>x.id===id);
   document.getElementById('detailName').textContent = `${TYPE_ICON[p.type]||DEFAULT_TYPE_ICON} ${p.name}`;
   const curStage = STAGES.find(s=>s.id===getProjectStage(p));
-  document.getElementById('detailSub').innerHTML = `<span>${p.type||'Project'} · ${p.location||'—'}</span><span>Client: ${p.client||'—'}</span><span>Manager: ${getProjectManagers(p).join(', ')||'—'}</span><span>${fmtDate(p.start)} → ${fmtDate(p.end)}</span><span>${curStage.short} · ${curStage.label}</span>`;
+  document.getElementById('detailSub').innerHTML = `<span>${projectStatusBadge(p)}</span><span>${p.type||'Project'} · ${p.location||'—'}</span><span>Client: ${p.client||'—'}</span><span>Manager: ${getProjectManagers(p).join(', ')||'—'}</span><span>${fmtDate(p.start)} → ${fmtDate(p.end)}</span><span>${curStage.short} · ${curStage.label}</span>`;
 
   renderDetailStats(id);
   renderKanban(id);
@@ -1358,6 +1431,7 @@ function openProject(id){
     Клиент: <b style="color:var(--text)">${p.client||'—'}</b><br>
     Руководитель(и) проекта: <b style="color:var(--text)">${getProjectManagers(p).join(', ')||'—'}</b><br>
     Сроки: <b style="color:var(--text)">${fmtDate(p.start)} – ${fmtDate(p.end)}</b><br>
+    Статус: ${projectStatusBadge(p)}<br>
     Бюджет: <b style="color:var(--text)">₸${p.budget.toLocaleString('ru-RU')}</b>${p.note?`<br><span style="font-size:12px;color:var(--text-dim);">${p.note}</span>`:''}
     <div style="margin-top:10px;">Этап проекта (П1–П6):${stageStepperHTML(p)}</div>
   `;
@@ -1633,6 +1707,7 @@ document.getElementById('projectModalSave').addEventListener('click', ()=>{
   } else {
     proj.progress = 0;
     proj.spent = 0;
+    proj.status = PROJECT_STATUS_ACTIVE;
     db.collection('projects').add(proj).then(()=>{
       logActivity(`создал(а) проект «${proj.name}»`, proj.manager);
       closeProjectModal();
@@ -1754,11 +1829,21 @@ function timeAgo(iso){
 
 /* ===================== TEAM CHAT (общий канал) ===================== */
 const chatSenderSelect = document.getElementById('chatSenderSelect');
+function getRegisteredDisplayNames(){
+  return [...new Set(registeredUsers.map(u=>u.displayName).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,'ru'));
+}
 function refreshChatSenderOptions(){
-  const names = Object.keys(TEAM);
+  const names = getRegisteredDisplayNames();
+  if(!names.length){
+    chatSenderSelect.innerHTML = '<option value="">— нет зарегистрированных пользователей —</option>';
+    return;
+  }
   chatSenderSelect.innerHTML = names.map(n=>`<option value="${n}">${n}</option>`).join('');
   const saved = localStorage.getItem('chatSenderName');
+  const mine = currentUserProfile && currentUserProfile.displayName;
   if(saved && names.includes(saved)) chatSenderSelect.value = saved;
+  else if(mine && names.includes(mine)) chatSenderSelect.value = mine;
 }
 chatSenderSelect.addEventListener('change', ()=>{
   try{ localStorage.setItem('chatSenderName', chatSenderSelect.value); }catch(e){}
@@ -1784,7 +1869,7 @@ function sendChatMessage(){
   const input = document.getElementById('chatMessageInput');
   const text = input.value.trim();
   if(!text) return;
-  const by = chatSenderSelect.value || Object.keys(TEAM)[0] || 'Неизвестно';
+  const by = chatSenderSelect.value || (currentUserProfile && currentUserProfile.displayName) || 'Неизвестно';
   db.collection('messages').add({ by, text, at: new Date().toISOString() }).then(()=>{
     input.value='';
   }).catch(err=>showToast('Ошибка отправки сообщения: '+err.message));
@@ -1860,21 +1945,52 @@ function renderTeamPanel(){
 
 /* ===================== AUTH GATE ===================== */
 let unsubProjects=null, unsubTasks=null, unsubDocuments=null, unsubChangelog=null, unsubModuleSettings=null;
-let unsubTeam=null, unsubMessages=null, unsubActivity=null;
+let unsubTeam=null, unsubMessages=null, unsubActivity=null, unsubUsers=null;
+
+function ensureUserProfile(user){
+  const ref = db.collection('users').doc(user.uid);
+  return ref.get().then(doc=>{
+    if(doc.exists) return { uid:user.uid, ...doc.data() };
+    const displayName = user.email.split('@')[0];
+    const data = { displayName, email:user.email, createdAt:new Date().toISOString() };
+    return ref.set(data).then(()=>({ uid:user.uid, ...data }));
+  });
+}
+
+function updateUserChip(){
+  const user = auth.currentUser;
+  if(!user) return;
+  const displayName = (currentUserProfile && currentUserProfile.displayName) || user.email.split('@')[0];
+  document.getElementById('currentUserName').textContent = displayName;
+  document.getElementById('currentUserEmail').textContent = user.email;
+  document.getElementById('currentUserAvatar').textContent = initials(displayName);
+}
 
 function showApp(user){
   document.getElementById('loginOverlay').style.display='none';
   document.getElementById('appRoot').style.display='flex';
-  document.getElementById('currentUserEmail').textContent = user.email;
-  document.getElementById('currentUserName').textContent = user.email.split('@')[0];
-  document.getElementById('currentUserAvatar').textContent = user.email.slice(0,2).toUpperCase();
-  startRealtimeListeners();
+  updateUserChip();
+  ensureUserProfile(user).then(profile=>{
+    currentUserProfile = profile;
+    updateUserChip();
+  }).catch(()=>{
+    currentUserProfile = { displayName:user.email.split('@')[0], email:user.email };
+    updateUserChip();
+  }).finally(()=>{
+    startRealtimeListeners();
+    refreshTeamDependentSelects();
+  });
 }
 function showLogin(){
   document.getElementById('appRoot').style.display='none';
   document.getElementById('loginOverlay').style.display='flex';
   document.getElementById('loginEmailInput').value='';
+  document.getElementById('loginDisplayNameInput').value='';
   document.getElementById('loginPasswordInput').value='';
+  currentUserProfile = null;
+  registeredUsers = [];
+  loginMode = 'signin';
+  updateLoginUI();
   if(unsubProjects){ unsubProjects(); unsubProjects=null; }
   if(unsubTasks){ unsubTasks(); unsubTasks=null; }
   if(unsubDocuments){ unsubDocuments(); unsubDocuments=null; }
@@ -1883,6 +1999,7 @@ function showLogin(){
   if(unsubTeam){ unsubTeam(); unsubTeam=null; }
   if(unsubMessages){ unsubMessages(); unsubMessages=null; }
   if(unsubActivity){ unsubActivity(); unsubActivity=null; }
+  if(unsubUsers){ unsubUsers(); unsubUsers=null; }
 }
 
 auth.onAuthStateChanged(user=>{
@@ -1890,27 +2007,76 @@ auth.onAuthStateChanged(user=>{
 });
 
 let loginMode = 'signin';
+function updateLoginUI(){
+  const isSignin = loginMode === 'signin';
+  const isSignup = loginMode === 'signup';
+  const isReset = loginMode === 'reset';
+  document.getElementById('loginPasswordWrap').style.display = isReset ? 'none' : '';
+  document.getElementById('loginForgotWrap').style.display = isSignin ? '' : 'none';
+  document.getElementById('loginDisplayNameWrap').style.display = isSignup ? '' : 'none';
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('loginSuccess').textContent = '';
+  if(isReset){
+    document.getElementById('loginTitle').textContent = 'Восстановление пароля';
+    document.getElementById('loginSub').textContent = 'Введите email — отправим ссылку для сброса пароля.';
+    document.getElementById('loginSubmitBtn').textContent = 'Отправить ссылку';
+    document.getElementById('loginToggle').innerHTML = '← <span>Вернуться ко входу</span>';
+  } else if(isSignup){
+    document.getElementById('loginTitle').textContent = 'Создать аккаунт';
+    document.getElementById('loginSub').textContent = 'Зарегистрируйтесь, чтобы работать с проектами.';
+    document.getElementById('loginSubmitBtn').textContent = 'Создать аккаунт';
+    document.getElementById('loginToggle').innerHTML = 'Уже есть аккаунт? <span>Войти</span>';
+  } else {
+    document.getElementById('loginTitle').textContent = 'Вход';
+    document.getElementById('loginSub').textContent = 'Войдите, чтобы открыть дэшборд проектов.';
+    document.getElementById('loginSubmitBtn').textContent = 'Войти';
+    document.getElementById('loginToggle').innerHTML = 'Нет аккаунта? <span>Создать</span>';
+  }
+}
+document.getElementById('loginForgotBtn').addEventListener('click', ()=>{
+  loginMode = 'reset';
+  updateLoginUI();
+});
 document.getElementById('loginToggle').addEventListener('click', ()=>{
-  loginMode = loginMode==='signin' ? 'signup' : 'signin';
-  document.getElementById('loginTitle').textContent = loginMode==='signin' ? 'Вход' : 'Создать аккаунт';
-  document.getElementById('loginSubmitBtn').textContent = loginMode==='signin' ? 'Войти' : 'Создать аккаунт';
-  document.getElementById('loginToggle').innerHTML = loginMode==='signin'
-    ? 'Нет аккаунта? <span>Создать</span>'
-    : 'Уже есть аккаунт? <span>Войти</span>';
-  document.getElementById('loginError').textContent='';
+  if(loginMode === 'reset'){ loginMode = 'signin'; }
+  else { loginMode = loginMode === 'signin' ? 'signup' : 'signin'; }
+  updateLoginUI();
 });
 document.getElementById('loginSubmitBtn').addEventListener('click', ()=>{
   const email = document.getElementById('loginEmailInput').value.trim();
   const pass = document.getElementById('loginPasswordInput').value;
   const errBox = document.getElementById('loginError');
-  errBox.textContent='';
-  if(!email || !pass){ errBox.textContent='Введите email и пароль.'; return; }
-  const action = loginMode==='signin'
-    ? auth.signInWithEmailAndPassword(email, pass)
-    : auth.createUserWithEmailAndPassword(email, pass);
-  action.catch(err=>{ errBox.textContent = err.message; });
+  const okBox = document.getElementById('loginSuccess');
+  errBox.textContent = '';
+  okBox.textContent = '';
+  if(!email){ errBox.textContent = 'Введите email.'; return; }
+  if(loginMode === 'reset'){
+    auth.sendPasswordResetEmail(email).then(()=>{
+      okBox.textContent = 'Ссылка для сброса пароля отправлена на ' + email + '. Проверьте почту (и папку «Спам»).';
+    }).catch(err=>{ errBox.textContent = err.message; });
+    return;
+  }
+  if(!pass){ errBox.textContent = 'Введите пароль.'; return; }
+  if(loginMode === 'signup'){
+    const displayName = document.getElementById('loginDisplayNameInput').value.trim();
+    if(!displayName){ errBox.textContent = 'Введите имя пользователя.'; return; }
+    auth.createUserWithEmailAndPassword(email, pass).then(cred=>
+      db.collection('users').doc(cred.user.uid).set({
+        displayName,
+        email,
+        createdAt: new Date().toISOString(),
+      })
+    ).catch(err=>{ errBox.textContent = err.message; });
+    return;
+  }
+  auth.signInWithEmailAndPassword(email, pass).catch(err=>{ errBox.textContent = err.message; });
 });
-document.getElementById('currentUserEmail').addEventListener('click', ()=>auth.signOut());
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+  auth.signOut().catch(err=>{
+    const t = document.getElementById('toast');
+    if(t){ t.textContent = 'Ошибка выхода: ' + err.message; t.classList.add('show'); }
+  });
+});
 
 /* ===================== FIRESTORE DATA LAYER ===================== */
 function startRealtimeListeners(){
@@ -1920,6 +2086,7 @@ function startRealtimeListeners(){
 
   unsubProjects = db.collection('projects').onSnapshot(snap=>{
     projects = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    syncAllProjectStatuses();
     renderDashboard();
     renderProjectCards();
     refreshProjSelect();
@@ -1927,6 +2094,7 @@ function startRealtimeListeners(){
 
   unsubTasks = db.collection('tasks').onSnapshot(snap=>{
     tasks = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    syncAllProjectStatuses();
     renderDashboard();
     renderProjectCards();
     if(currentProjectId && document.getElementById('view-detail').classList.contains('active')){
@@ -1959,11 +2127,20 @@ function startRealtimeListeners(){
     teamDocs = snap.docs.map(d=>({ id:d.id, ...d.data() }));
     TEAM = {};
     teamDocs.forEach(m=>{ TEAM[m.name] = m.role; });
+    if(!Object.keys(TEAM).length) TEAM = { ...TEAM_SEED };
     refreshTeamDependentSelects();
     renderTeamEditList();
     renderTeamPanel();
     renderActivityFeed();
   }, err=>showToast('Ошибка чтения команды: '+err.message));
+
+  unsubUsers = db.collection('users').onSnapshot(snap=>{
+    registeredUsers = snap.docs.map(d=>({ uid:d.id, ...d.data() }));
+    const me = auth.currentUser && registeredUsers.find(u=>u.uid===auth.currentUser.uid);
+    if(me) currentUserProfile = me;
+    updateUserChip();
+    refreshChatSenderOptions();
+  }, err=>showToast('Ошибка чтения пользователей: '+err.message));
 
   unsubMessages = db.collection('messages').orderBy('at','asc').onSnapshot(snap=>{
     chatMessages = snap.docs.map(d=>({ id:d.id, ...d.data() }));
