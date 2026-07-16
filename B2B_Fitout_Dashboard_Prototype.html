@@ -270,7 +270,14 @@
   .activity-body b{font-weight:700;}
   .activity-time{font-size:11px;color:var(--text-faint);margin-top:2px;}
 
-  .team-chat-card{display:flex;flex-direction:column;height:340px;}
+  .team-chat-card{display:flex;flex-direction:column;height:400px;}
+  .chat-tabs{display:flex;gap:4px;margin-left:auto;}
+  .chat-tab{padding:4px 11px;font-size:11.5px;font-weight:600;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text-dim);cursor:pointer;font-family:inherit;}
+  .chat-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .chat-dm-toolbar{padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:8px;flex-shrink:0;}
+  .chat-dm-toolbar select{width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:inherit;}
+  .chat-panel-team,.chat-panel-dm{display:flex;flex-direction:column;flex:1;min-height:0;}
+  .chat-msg.is-mine .chat-msg-text{background:var(--accent-light);padding:6px 10px;border-radius:10px;display:inline-block;}
   .chat-messages{flex:1;overflow-y:auto;padding-right:2px;margin-bottom:10px;}
   .chat-msg{display:flex;gap:8px;margin-bottom:12px;}
   .chat-msg-body{flex:1;min-width:0;}
@@ -493,12 +500,30 @@
             </div>
 
             <div class="card team-chat-card">
-              <div class="card-head"><div class="card-title">Командный чат</div></div>
-              <div class="chat-messages" id="chatMessagesWrap"></div>
-              <div class="chat-input-row">
-                <select id="chatSenderSelect"></select>
-                <input id="chatMessageInput" placeholder="Написать команде…" maxlength="500">
-                <button class="btn btn-primary btn-sm" id="chatSendBtn">→</button>
+              <div class="card-head" style="align-items:center;">
+                <div class="card-title">Чаты</div>
+                <div class="chat-tabs">
+                  <button type="button" class="chat-tab active" data-chat-tab="team">Общий</button>
+                  <button type="button" class="chat-tab" data-chat-tab="dm">Личные</button>
+                </div>
+              </div>
+              <div class="chat-panel-team" id="chatPanelTeam">
+                <div class="chat-messages" id="chatMessagesWrap"></div>
+                <div class="chat-input-row">
+                  <select id="chatSenderSelect"></select>
+                  <input id="chatMessageInput" placeholder="Написать команде…" maxlength="500">
+                  <button class="btn btn-primary btn-sm" id="chatSendBtn">→</button>
+                </div>
+              </div>
+              <div class="chat-panel-dm" id="chatPanelDm" style="display:none;">
+                <div class="chat-dm-toolbar">
+                  <select id="chatDmRecipientSelect"><option value="">— выберите собеседника —</option></select>
+                </div>
+                <div class="chat-messages" id="chatDmMessagesWrap"></div>
+                <div class="chat-input-row">
+                  <input id="chatDmMessageInput" placeholder="Личное сообщение…" maxlength="500" disabled>
+                  <button class="btn btn-primary btn-sm" id="chatDmSendBtn" disabled>→</button>
+                </div>
               </div>
             </div>
           </div>
@@ -1100,6 +1125,9 @@ let TEAM = { ...TEAM_SEED };
 let teamDocs = []; // [{id, name, role}] — нужны id для удаления/редактирования
 let activityLog = [];
 let chatMessages = [];
+let dmMessages = [];
+let chatTab = 'team';
+let activeDmPeerUid = null;
 let registeredUsers = [];
 let currentUserProfile = null;
 
@@ -1827,8 +1855,13 @@ function timeAgo(iso){
   return fmtDateTime(iso);
 }
 
-/* ===================== TEAM CHAT (общий канал) ===================== */
+/* ===================== CHAT (общий + личные) ===================== */
 const chatSenderSelect = document.getElementById('chatSenderSelect');
+const chatDmRecipientSelect = document.getElementById('chatDmRecipientSelect');
+
+function makeThreadId(uidA, uidB){
+  return [uidA, uidB].sort().join('_');
+}
 function getRegisteredDisplayNames(){
   return [...new Set(registeredUsers.map(u=>u.displayName).filter(Boolean))]
     .sort((a,b)=>a.localeCompare(b,'ru'));
@@ -1836,7 +1869,7 @@ function getRegisteredDisplayNames(){
 function refreshChatSenderOptions(){
   const names = getRegisteredDisplayNames();
   if(!names.length){
-    chatSenderSelect.innerHTML = '<option value="">— нет зарегистрированных пользователей —</option>';
+    chatSenderSelect.innerHTML = '<option value="">— нет пользователей —</option>';
     return;
   }
   chatSenderSelect.innerHTML = names.map(n=>`<option value="${n}">${n}</option>`).join('');
@@ -1845,14 +1878,47 @@ function refreshChatSenderOptions(){
   if(saved && names.includes(saved)) chatSenderSelect.value = saved;
   else if(mine && names.includes(mine)) chatSenderSelect.value = mine;
 }
+function refreshDmRecipientOptions(){
+  if(!chatDmRecipientSelect) return;
+  const me = auth.currentUser && auth.currentUser.uid;
+  const others = registeredUsers.filter(u=>u.uid !== me);
+  const prev = activeDmPeerUid;
+  chatDmRecipientSelect.innerHTML = '<option value="">— выберите собеседника —</option>'
+    + others.map(u=>`<option value="${u.uid}">${escapeHtml(u.displayName||u.email||'—')}</option>`).join('');
+  if(prev && others.some(u=>u.uid===prev)){
+    chatDmRecipientSelect.value = prev;
+  } else {
+    activeDmPeerUid = null;
+    subscribeDmThread(null);
+    setDmInputEnabled(false);
+  }
+}
+function setDmInputEnabled(on){
+  document.getElementById('chatDmMessageInput').disabled = !on;
+  document.getElementById('chatDmSendBtn').disabled = !on;
+}
 chatSenderSelect.addEventListener('change', ()=>{
   try{ localStorage.setItem('chatSenderName', chatSenderSelect.value); }catch(e){}
 });
+chatDmRecipientSelect.addEventListener('change', ()=>{
+  activeDmPeerUid = chatDmRecipientSelect.value || null;
+  setDmInputEnabled(!!activeDmPeerUid);
+  subscribeDmThread(activeDmPeerUid);
+});
+document.querySelectorAll('.chat-tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    chatTab = btn.dataset.chatTab;
+    document.querySelectorAll('.chat-tab').forEach(b=>b.classList.toggle('active', b.dataset.chatTab===chatTab));
+    document.getElementById('chatPanelTeam').style.display = chatTab === 'team' ? '' : 'none';
+    document.getElementById('chatPanelDm').style.display = chatTab === 'dm' ? '' : 'none';
+  });
+});
+
 function renderChatMessages(){
   const wrap = document.getElementById('chatMessagesWrap');
   if(!wrap) return;
   if(chatMessages.length===0){
-    wrap.innerHTML = `<div class="chat-empty">Сообщений пока нет — начните разговор.</div>`;
+    wrap.innerHTML = `<div class="chat-empty">Сообщений пока нет — начните разговор в общем чате.</div>`;
     return;
   }
   wrap.innerHTML = chatMessages.map(m=>`
@@ -1865,19 +1931,85 @@ function renderChatMessages(){
     </div>`).join('');
   wrap.scrollTop = wrap.scrollHeight;
 }
-function sendChatMessage(){
+function renderDmMessages(){
+  const wrap = document.getElementById('chatDmMessagesWrap');
+  if(!wrap) return;
+  if(!activeDmPeerUid){
+    wrap.innerHTML = `<div class="chat-empty">Выберите собеседника, чтобы начать личную переписку.</div>`;
+    return;
+  }
+  if(dmMessages.length===0){
+    wrap.innerHTML = `<div class="chat-empty">Сообщений пока нет — напишите первым.</div>`;
+    return;
+  }
+  const myUid = auth.currentUser && auth.currentUser.uid;
+  wrap.innerHTML = dmMessages.map(m=>{
+    const mine = m.fromUid === myUid;
+    return `<div class="chat-msg${mine?' is-mine':''}">
+      <div class="mini-avatar" style="width:26px;height:26px;font-size:10px;flex-shrink:0;">${initials(m.fromName||'?')}</div>
+      <div class="chat-msg-body">
+        <div class="chat-msg-head"><span class="chat-msg-name">${escapeHtml(m.fromName||'—')}</span><span class="chat-msg-time">${fmtDateTime(m.at)}</span></div>
+        <div class="chat-msg-text">${escapeHtml(m.text)}</div>
+      </div>
+    </div>`;
+  }).join('');
+  wrap.scrollTop = wrap.scrollHeight;
+}
+function sendTeamMessage(){
   const input = document.getElementById('chatMessageInput');
   const text = input.value.trim();
-  if(!text) return;
+  if(!text || !auth.currentUser) return;
   const by = chatSenderSelect.value || (currentUserProfile && currentUserProfile.displayName) || 'Неизвестно';
-  db.collection('messages').add({ by, text, at: new Date().toISOString() }).then(()=>{
-    input.value='';
-  }).catch(err=>showToast('Ошибка отправки сообщения: '+err.message));
+  db.collection('messages').add({
+    type: 'team',
+    by,
+    fromUid: auth.currentUser.uid,
+    text,
+    at: new Date().toISOString(),
+  }).then(()=>{ input.value=''; }).catch(err=>showToast('Ошибка отправки: '+err.message));
 }
-document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
+function sendDmMessage(){
+  if(!activeDmPeerUid || !auth.currentUser) return;
+  const input = document.getElementById('chatDmMessageInput');
+  const text = input.value.trim();
+  if(!text) return;
+  const peer = registeredUsers.find(u=>u.uid===activeDmPeerUid);
+  const threadId = makeThreadId(auth.currentUser.uid, activeDmPeerUid);
+  db.collection('dmMessages').add({
+    threadId,
+    participantUids: [auth.currentUser.uid, activeDmPeerUid].sort(),
+    fromUid: auth.currentUser.uid,
+    fromName: (currentUserProfile && currentUserProfile.displayName) || auth.currentUser.email.split('@')[0],
+    toUid: activeDmPeerUid,
+    toName: (peer && peer.displayName) || '—',
+    text,
+    at: new Date().toISOString(),
+  }).then(()=>{ input.value=''; }).catch(err=>showToast('Ошибка личного сообщения: '+err.message));
+}
+document.getElementById('chatSendBtn').addEventListener('click', sendTeamMessage);
 document.getElementById('chatMessageInput').addEventListener('keydown', e=>{
-  if(e.key==='Enter'){ e.preventDefault(); sendChatMessage(); }
+  if(e.key==='Enter'){ e.preventDefault(); sendTeamMessage(); }
 });
+document.getElementById('chatDmSendBtn').addEventListener('click', sendDmMessage);
+document.getElementById('chatDmMessageInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); sendDmMessage(); }
+});
+
+function subscribeDmThread(peerUid){
+  if(unsubDmMessages){ unsubDmMessages(); unsubDmMessages = null; }
+  dmMessages = [];
+  renderDmMessages();
+  if(!peerUid || !auth.currentUser) return;
+  const threadId = makeThreadId(auth.currentUser.uid, peerUid);
+  unsubDmMessages = db.collection('dmMessages')
+    .where('threadId', '==', threadId)
+    .orderBy('at', 'asc')
+    .onSnapshot(snap=>{
+      dmMessages = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      renderDmMessages();
+      renderTeamPanel();
+    }, err=>showToast('Ошибка личного чата: '+err.message));
+}
 
 /* ===================== ACTIVITY LOG + FEED ===================== */
 /* Лёгкий журнал действий — НЕ включает отправку сообщений в чат (иначе
@@ -1915,6 +2047,7 @@ const PRESENCE_WINDOW_MS = 15*60*1000;
 function lastSeenFor(name){
   let latest = null;
   chatMessages.forEach(m=>{ if(m.by===name){ const t=new Date(m.at); if(!latest||t>latest) latest=t; } });
+  dmMessages.forEach(m=>{ if(m.fromName===name){ const t=new Date(m.at); if(!latest||t>latest) latest=t; } });
   activityLog.forEach(a=>{ if(a.by===name){ const t=new Date(a.at); if(!latest||t>latest) latest=t; } });
   return latest;
 }
@@ -1945,7 +2078,7 @@ function renderTeamPanel(){
 
 /* ===================== AUTH GATE ===================== */
 let unsubProjects=null, unsubTasks=null, unsubDocuments=null, unsubChangelog=null, unsubModuleSettings=null;
-let unsubTeam=null, unsubMessages=null, unsubActivity=null, unsubUsers=null;
+let unsubTeam=null, unsubMessages=null, unsubActivity=null, unsubUsers=null, unsubDmMessages=null;
 
 function ensureUserProfile(user){
   const ref = db.collection('users').doc(user.uid);
@@ -1989,6 +2122,9 @@ function showLogin(){
   document.getElementById('loginPasswordInput').value='';
   currentUserProfile = null;
   registeredUsers = [];
+  activeDmPeerUid = null;
+  dmMessages = [];
+  if(unsubDmMessages){ unsubDmMessages(); unsubDmMessages = null; }
   loginMode = 'signin';
   updateLoginUI();
   if(unsubProjects){ unsubProjects(); unsubProjects=null; }
@@ -2140,13 +2276,15 @@ function startRealtimeListeners(){
     if(me) currentUserProfile = me;
     updateUserChip();
     refreshChatSenderOptions();
+    refreshDmRecipientOptions();
   }, err=>showToast('Ошибка чтения пользователей: '+err.message));
 
   unsubMessages = db.collection('messages').orderBy('at','asc').onSnapshot(snap=>{
-    chatMessages = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    chatMessages = snap.docs.map(d=>({ id:d.id, ...d.data() }))
+      .filter(m=>!m.type || m.type === 'team');
     renderChatMessages();
     renderTeamPanel();
-  }, err=>showToast('Ошибка чтения чата: '+err.message));
+  }, err=>showToast('Ошибка чтения общего чата: '+err.message));
 
   unsubActivity = db.collection('activity').onSnapshot(snap=>{
     activityLog = snap.docs.map(d=>({ id:d.id, ...d.data() }));
