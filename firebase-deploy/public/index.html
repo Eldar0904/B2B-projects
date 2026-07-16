@@ -1985,11 +1985,13 @@ function subscribeDmThread(peerUid){
   renderDmMessages();
   if(!peerUid || !auth.currentUser) return;
   const threadId = makeThreadId(auth.currentUser.uid, peerUid);
+  /* array-contains + client filter — не требует составного индекса (threadId+at) */
   unsubDmMessages = db.collection('dmMessages')
-    .where('threadId', '==', threadId)
-    .orderBy('at', 'asc')
+    .where('participantUids', 'array-contains', auth.currentUser.uid)
     .onSnapshot(snap=>{
-      dmMessages = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      dmMessages = snap.docs.map(d=>({ id:d.id, ...d.data() }))
+        .filter(m=>m.threadId===threadId)
+        .sort((a,b)=>(a.at||'').localeCompare(b.at||''));
       renderDmMessages();
       renderTeamPanel();
     }, err=>showToast('Ошибка личного чата: '+err.message));
