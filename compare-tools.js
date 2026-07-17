@@ -877,6 +877,138 @@ document.getElementById('runCatalogMatchBtn').addEventListener('click', function
   renderCatalogMatch();
 });
 
+// -- Catalog Matcher API bridge (project-scoped growing DB) ------------
+var _cmProjects = [];
+var _cmSources = [];
+
+function catalogMatcherBase() {
+  var el = document.getElementById('catalogMatcherApiBase');
+  var base = (el && el.value ? el.value : 'http://localhost:8000/api').replace(/\/$/, '');
+  try { localStorage.setItem('catalogMatcher.apiBase', base); } catch (e) {}
+  return base;
+}
+
+function setCatalogMatcherStatus(text, isError) {
+  var el = document.getElementById('catalogMatcherApiStatus');
+  if (!el) return;
+  el.textContent = text || '';
+  el.style.color = isError ? 'var(--red)' : 'var(--text-dim)';
+}
+
+function renderCatalogMatcherSourcesForProject(projectId) {
+  var box = document.getElementById('catalogMatcherSourceList');
+  if (!box) return;
+  var project = _cmProjects.find(function(p) { return String(p.id) === String(projectId); });
+  if (!project) {
+    box.innerHTML = '<span style="color:var(--text-dim)">Нет выбранного проекта</span>';
+    return;
+  }
+  var links = (project.catalog_links || []).filter(function(l) { return l.include_in_matching; });
+  if (!links.length) {
+    box.innerHTML = '<span style="color:var(--text-dim)">Нет включённых каталогов — настройте в Catalog Matcher → Проекты</span>';
+    return;
+  }
+  box.innerHTML = links.map(function(l) {
+    return '<span style="display:inline-block;margin:0 6px 6px 0;padding:3px 8px;border-radius:6px;background:#e2e8f0;font-weight:600;">'
+      + (l.source_name || ('#' + l.source_id)) + '</span>';
+  }).join('');
+}
+
+async function refreshCatalogMatcherBridge() {
+  var base = catalogMatcherBase();
+  var uiLink = document.getElementById('openCatalogMatcherUi');
+  if (uiLink) {
+    try {
+      var u = new URL(base);
+      uiLink.href = u.origin.replace(':8000', ':5173');
+    } catch (e) {
+      uiLink.href = 'http://localhost:5173';
+    }
+  }
+  setCatalogMatcherStatus('Загрузка проектов…');
+  try {
+    var [projRes, srcRes] = await Promise.all([
+      fetch(base + '/projects'),
+      fetch(base + '/catalog-sources'),
+    ]);
+    if (!projRes.ok) throw new Error('projects HTTP ' + projRes.status);
+    if (!srcRes.ok) throw new Error('sources HTTP ' + srcRes.status);
+    _cmProjects = await projRes.json();
+    _cmSources = await srcRes.json();
+    var sel = document.getElementById('catalogMatcherProjectSelect');
+    if (sel) {
+      var prev = sel.value;
+      sel.innerHTML = '<option value="">— выберите проект —</option>' +
+        _cmProjects.map(function(p) {
+          return '<option value="' + p.id + '">' + p.name + '</option>';
+        }).join('');
+      if (prev) sel.value = prev;
+      renderCatalogMatcherSourcesForProject(sel.value);
+    }
+    setCatalogMatcherStatus(
+      'API OK · проектов: ' + _cmProjects.length +
+      ' · каталогов: ' + _cmSources.length +
+      ' (enabled: ' + _cmSources.filter(function(s) { return s.is_enabled; }).length + ')'
+    );
+  } catch (err) {
+    setCatalogMatcherStatus(
+      'API недоступен (' + (err && err.message ? err.message : err) + '). Запустите catalog-matcher backend на :8000.',
+      true
+    );
+  }
+}
+
+async function runCatalogMatcherForProject() {
+  var sel = document.getElementById('catalogMatcherProjectSelect');
+  var projectId = sel && sel.value ? Number(sel.value) : null;
+  if (!projectId) {
+    showToast('Выберите проект');
+    return;
+  }
+  var base = catalogMatcherBase();
+  setCatalogMatcherStatus('Запуск подбора для проекта #' + projectId + '…');
+  try {
+    var res = await fetch(base + '/match/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        project_id: projectId,
+        matching_mode: 'balanced',
+        embed_catalog_if_missing: false,
+      }),
+    });
+    var body = await res.json().catch(function() { return {}; });
+    if (!res.ok) throw new Error(body.detail || ('HTTP ' + res.status));
+    setCatalogMatcherStatus(
+      'Подбор запущен · run #' + body.run_id +
+      ' · источники: ' + ((body.source_names || []).join(', ') || '—') +
+      '. Откройте UI для ревью.'
+    );
+    showToast('Подбор по проекту запущен (run #' + body.run_id + ')');
+  } catch (err) {
+    setCatalogMatcherStatus(String(err.message || err), true);
+    showToast(String(err.message || err));
+  }
+}
+
+(function initCatalogMatcherBridge() {
+  var baseInput = document.getElementById('catalogMatcherApiBase');
+  if (!baseInput) return;
+  try {
+    var saved = localStorage.getItem('catalogMatcher.apiBase');
+    if (saved) baseInput.value = saved;
+  } catch (e) {}
+  var refreshBtn = document.getElementById('catalogMatcherRefreshBtn');
+  var runBtn = document.getElementById('catalogMatcherRunProjectBtn');
+  var sel = document.getElementById('catalogMatcherProjectSelect');
+  if (refreshBtn) refreshBtn.addEventListener('click', refreshCatalogMatcherBridge);
+  if (runBtn) runBtn.addEventListener('click', runCatalogMatcherForProject);
+  if (sel) sel.addEventListener('change', function() {
+    renderCatalogMatcherSourcesForProject(sel.value);
+  });
+  refreshCatalogMatcherBridge();
+})();
+
 // -- Drag-and-drop ----------------------------------------------------
 [
   ['dropZoneA', 'compareBoxA'],

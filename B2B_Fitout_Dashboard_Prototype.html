@@ -707,9 +707,41 @@
 
         <!-- ── Tab: Catalog Matching ── -->
         <div id="cmpTabCatalog" style="display:none;">
+          <div id="catalogMatcherApiBridge" style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:18px;background:#f8fafc;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+              <div>
+                <div style="font-size:13px;font-weight:700;">Catalog Matcher API (проектный режим)</div>
+                <div style="font-size:12px;color:var(--text-dim);margin-top:3px;">
+                  Живая база каталогов (гос. смета + поставщики) с upsert и skip. Локальный подбор ниже — fallback без сервера.
+                </div>
+              </div>
+              <a id="openCatalogMatcherUi" href="http://localhost:5173" target="_blank" rel="noopener"
+                style="font-size:12px;font-weight:600;color:var(--accent);white-space:nowrap;">Открыть UI →</a>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;">
+              <input id="catalogMatcherApiBase" type="text" value="http://localhost:8000/api"
+                style="flex:1;min-width:220px;font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;"
+                placeholder="http://localhost:8000/api" />
+              <button type="button" class="btn btn-ghost" id="catalogMatcherRefreshBtn" style="font-size:12px;">Обновить</button>
+              <button type="button" class="btn btn-primary" id="catalogMatcherRunProjectBtn" style="font-size:12px;">Подбор по проекту</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <label style="font-size:12px;color:var(--text-dim);display:flex;flex-direction:column;gap:4px;">
+                Проект
+                <select id="catalogMatcherProjectSelect" style="font-size:12.5px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;">
+                  <option value="">— выберите проект —</option>
+                </select>
+              </label>
+              <div>
+                <div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">Каталоги проекта (вкл. в подбор)</div>
+                <div id="catalogMatcherSourceList" style="font-size:12.5px;min-height:38px;color:var(--text);"></div>
+              </div>
+            </div>
+            <div id="catalogMatcherApiStatus" style="font-size:12px;color:var(--text-dim);margin-top:10px;"></div>
+          </div>
+
           <p style="font-size:12.5px;color:var(--text-dim);margin-bottom:16px;">
-            Загрузите ваш перечень позиций и каталог — система найдёт до 3 вариантов из каталога для каждой позиции.
-            Выберите подходящий вариант и экспортируйте результат в Excel.
+            Локальный режим (без API): загрузите перечень и каталог — до 3 вариантов на позицию в браузере.
           </p>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">
 

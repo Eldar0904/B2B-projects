@@ -27,15 +27,18 @@ TOP_K = 3
 MAX_CANDIDATES = 20000
 
 
+def normalize_header(h: str) -> str:
+    return re.sub(r"\s+", " ", str(h)).strip()
+
+
 def load_needs(path: Path) -> pd.DataFrame:
     df = pd.read_excel(path, sheet_name=0, engine="openpyxl")
-    # Normalize headers
-    df.columns = [str(c).strip() for c in df.columns]
+    df.columns = [normalize_header(c) for c in df.columns]
     print("NEEDS columns:", df.columns.tolist(), file=sys.stderr)
     needed = {"Наименование", "Код", "Категория", "Описание", "Ед.изм.", "Кол-во"}
-    missing_cols = [c for c in needed if c not in df.columns]
-    if missing_cols:
-        raise ValueError(f"Needs file missing columns: {missing_cols}")
+    missing = [c for c in needed if c not in df.columns]
+    if missing:
+        raise ValueError(f"Needs file missing columns: {missing}")
     df = df.dropna(subset=["Наименование"]).copy()
     df = df[df["Наименование"].astype(str).str.strip() != ""].copy()
     df["__index"] = range(1, len(df) + 1)
@@ -47,33 +50,54 @@ def load_needs(path: Path) -> pd.DataFrame:
     return df.reset_index(drop=True)
 
 
+def find_col(df: pd.DataFrame, candidates: list[str]) -> str | None:
+    cols = {normalize_header(c): c for c in df.columns}
+    for target in candidates:
+        if target in cols:
+            return cols[target]
+    return None
+
+
 def load_catalog(path: Path) -> pd.DataFrame:
     df = pd.read_excel(path, sheet_name=0, engine="openpyxl")
-    df.columns = [str(c).strip() for c in df.columns]
+    df.columns = [normalize_header(c) for c in df.columns]
     print("CATALOG columns:", df.columns.tolist(), file=sys.stderr)
-    required = {"Код", "Наименование", "Описание", "Единица измерения", "Сметная цена, тенге", "поисковый текст"}
-    missing = [c for c in required if c not in df.columns]
+    required_bases = {
+        "Код": ["Код"],
+        "Наименование": ["Наименование"],
+        "Описание": ["Описание"],
+        "Единица измерения": ["Единица измерения"],
+        "Сметная цена, тенге": ["Сметная цена, тенге", "Сметная цена", "Цена, тенге", "Сметная цена, тг"],
+        "поисковый текст": ["поисковый текст"],
+    }
+    renamed = {}
+    missing = []
+    for base, candidates in required_bases.items():
+        found = find_col(df, candidates)
+        if found is None:
+            missing.append(base)
+        else:
+            renamed[base] = found
     if missing:
         raise ValueError(f"Catalog file missing columns: {missing}")
-    df = df.dropna(subset=["Наименование"]).copy()
+    df = df.dropna(subset=[renamed["Наименование"]]).copy()
     df["catalog_text"] = (
-        df["Наименование"].astype(str)
+        df[renamed["Наименование"]].astype(str)
         + " "
-        + df["Описание"].fillna("").astype(str)
+        + df[renamed["Описание"]].fillna("").astype(str)
         + " "
-        # include search text column 8?
-        df["поисковый текст"].fillna("").astype(str)
+        + df[renamed["поисковый текст"]].fillna("").astype(str)
     )
-    price_col = "Сметная цена, тенге"
+    price_col = renamed["Сметная цена, тенге"]
     df[price_col] = pd.to_numeric(df[price_col], errors="coerce")
     return df.reset_index(drop=True)
 
 
 def tokenize(text: str) -> set[str]:
     text = text.lower()
-    text = re.sub(r"[^\p{L}\p{N}\s]+", " ", text, flags=re.UNICODE)
-    toks = [t for t in text.split() if len(t) > 1]
-    return set(toks)
+    # Keep latin/cyrillic letters and digits; split on everything else.
+    toks = re.findall(r"[a-zа-яё0-9]+", text, flags=re.IGNORECASE)
+    return {t for t in toks if len(t) > 1}
 
 
 def jaccard(a: set[str], b: set[str]) -> float:
