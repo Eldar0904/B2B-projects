@@ -16,7 +16,7 @@
      - auth                 (firebase.auth() instance)
      - getUploaderName()    (display name helper from main script)
      - formatFileSize()     (size formatter from main script)
-     - uploadProjectBlob(projectId, filename, blob)  (Storage upload helper)
+     - uploadProjectBlob(projectId, filename, blob)  (Supabase Storage upload helper)
      - showToast(msg)       (toast helper)
      - logActivity(text,by) (activity feed helper)
      - JSZip                (global, loaded via CDN script tag)
@@ -410,7 +410,7 @@ document.getElementById('actModalGenerate').addEventListener('click', ()=>{
       ...meta,
     });
     const persist = (typeof uploadProjectBlob === 'function' && currentProjectId)
-      ? uploadProjectBlob(currentProjectId, filename, blob).then(({ url, storagePath })=>saveDoc({ url, storagePath, mimeType: blob.type || '' }))
+      ? uploadProjectBlob(currentProjectId, filename, blob).then(({ url, storagePath, storageBackend })=>saveDoc({ url, storagePath, storageBackend: storageBackend || 'supabase', mimeType: blob.type || '' }))
       : saveDoc({ size: `${Math.max(1, Math.round(blob.size/1024))} КБ` });
 
     persist.then(()=>{

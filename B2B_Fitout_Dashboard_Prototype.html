@@ -1042,7 +1042,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ===================== FIREBASE ===================== */
 /* Замените apiKey / messagingSenderId / appId на значения из
@@ -1059,7 +1060,25 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-const storage = firebase.storage();
+
+/* ===================== SUPABASE (document files) ===================== */
+/* Supabase Dashboard → Project Settings → API → Project URL + anon public key
+   Free tier: 1 GB storage, без карты. SQL для bucket: supabase/storage-setup.sql */
+const SUPABASE_URL = 'https://welqvuthgfjjolzlkacw.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_VAVtY4stPTmmFJd1edTdzA_MBv28VrM';
+const SUPABASE_DOCS_BUCKET = 'project-documents';
+
+let supabaseClient = null;
+function isSupabaseConfigured(){
+  return SUPABASE_URL && SUPABASE_ANON_KEY
+    && !SUPABASE_URL.includes('YOUR_')
+    && !SUPABASE_ANON_KEY.includes('YOUR_');
+}
+function getSupabase(){
+  if(!isSupabaseConfigured()) throw new Error('Укажите SUPABASE_URL и SUPABASE_ANON_KEY в index.html');
+  if(!supabaseClient) supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  return supabaseClient;
+}
 
 /* ===================== DATA ===================== */
 const TYPE_ICON = { 'Школа':'🏫', 'Детский сад':'🧸', 'Университет':'🎓', 'Музыкальная школа':'🎵' };
@@ -1570,7 +1589,7 @@ function getUploaderName(){
   if(auth.currentUser && auth.currentUser.email) return auth.currentUser.email.split('@')[0];
   return '—';
 }
-let activeDocUploadTask = null;
+let activeDocUploadAbort = null;
 const DOC_UPLOAD_TIMEOUT_MS = 90000;
 function withTimeout(promise, ms, message){
   return new Promise((resolve, reject)=>{
@@ -1578,37 +1597,48 @@ function withTimeout(promise, ms, message){
     promise.then(v=>{ clearTimeout(t); resolve(v); }, e=>{ clearTimeout(t); reject(e); });
   });
 }
-function formatStorageError(err){
-  const code = err && err.code;
+function formatUploadError(err){
   const msg = (err && err.message) || String(err);
-  if(code === 'storage/unauthorized') return 'Нет доступа к Storage — задеплойте storage.rules (firebase deploy --only storage).';
-  if(code === 'storage/unauthenticated') return 'Сессия истекла — выйдите и войдите снова.';
-  if(code === 'storage/canceled') return 'Загрузка отменена.';
-  if(code === 'storage/quota-exceeded') return 'Превышен лимит хранилища Firebase.';
-  if(/retry-limit|network|timed out|timeout|404|412|403/i.test(msg)) return 'Firebase Storage не отвечает. Включите Storage в консоли и задеплойте правила.';
+  if(/YOUR_SUPABASE|не настроен/i.test(msg)) return 'Supabase не настроен — укажите URL и anon key в index.html и выполните supabase/storage-setup.sql';
+  if(/row-level security|policy|403|401/i.test(msg)) return 'Нет доступа к Supabase Storage — выполните SQL из supabase/storage-setup.sql';
+  if(/quota|limit|413/i.test(msg)) return 'Превышен лимит Supabase (free tier: 1 GB).';
+  if(/abort|canceled/i.test(msg)) return 'Загрузка отменена.';
   return msg;
 }
 function uploadProjectBlob(projectId, filename, blob, onProgress){
+  const client = getSupabase();
   const safeName = sanitizeStorageFileName(filename);
-  const storagePath = `projects/${projectId}/files/${Date.now()}_${safeName}`;
-  const ref = storage.ref(storagePath);
-  const metadata = blob.type ? { contentType: blob.type } : undefined;
-  const task = ref.put(blob, metadata);
-  activeDocUploadTask = task;
-  const uploadPromise = new Promise((resolve, reject)=>{
-    task.on('state_changed',
-      snap=>{
-        if(onProgress && snap.totalBytes > 0) onProgress(snap.bytesTransferred / snap.totalBytes);
-      },
-      reject,
-      ()=>task.snapshot.ref.getDownloadURL()
-        .then(url=>resolve({ url, storagePath, size: blob.size }))
-        .catch(reject)
-    );
-  });
+  const storagePath = `projects/${projectId}/${Date.now()}_${safeName}`;
+  const fileBody = blob instanceof File
+    ? blob
+    : new File([blob], filename, { type: blob.type || 'application/octet-stream' });
+  const controller = new AbortController();
+  activeDocUploadAbort = controller;
+  if(onProgress) onProgress(0.05);
+  const uploadPromise = client.storage
+    .from(SUPABASE_DOCS_BUCKET)
+    .upload(storagePath, fileBody, {
+      contentType: fileBody.type || undefined,
+      upsert: false,
+      signal: controller.signal,
+    })
+    .then(({ error })=>{
+      if(error) throw error;
+      if(onProgress) onProgress(0.95);
+      const { data } = client.storage.from(SUPABASE_DOCS_BUCKET).getPublicUrl(storagePath);
+      return { url: data.publicUrl, storagePath, size: blob.size, storageBackend: 'supabase' };
+    });
   return withTimeout(uploadPromise, DOC_UPLOAD_TIMEOUT_MS,
-    'Превышено время ожидания (90 с). Включите Firebase Storage в консоли и выполните deploy --only storage.'
-  ).finally(()=>{ activeDocUploadTask = null; });
+    'Превышено время ожидания (90 с). Проверьте Supabase URL/key и политики bucket.'
+  ).finally(()=>{ activeDocUploadAbort = null; });
+}
+function deleteProjectFile(doc){
+  if(!doc.storagePath || doc.storageBackend === 'firebase') return Promise.resolve();
+  if(!isSupabaseConfigured()) return Promise.resolve();
+  return getSupabase().storage.from(SUPABASE_DOCS_BUCKET).remove([doc.storagePath])
+    .then(({ error })=>{
+      if(error && !/not found|404/i.test(error.message)) throw error;
+    });
 }
 let pendingDocFile = null;
 const docCategoryInput = document.getElementById('docCategoryInput');
@@ -1625,7 +1655,7 @@ function setDocUploadProgress(pct){
   const statusEl = document.getElementById('docUploadStatus');
   if(pct == null){
     saveBtn.textContent = 'Загрузка…';
-    if(statusEl) statusEl.textContent = 'Подключение к Storage…';
+    if(statusEl) statusEl.textContent = 'Подключение к Supabase…';
     return;
   }
   const p = Math.round(pct * 100);
@@ -1642,15 +1672,19 @@ function setPendingDocFile(file){
 function openDocUploadModal(){
   if(!currentProjectId){ showToast('Сначала откройте проект.'); return; }
   if(!auth.currentUser){ showToast('Войдите в аккаунт, чтобы загружать документы.'); return; }
+  if(!isSupabaseConfigured()){
+    showToast('Supabase не настроен — укажите URL и anon key в коде (см. supabase/storage-setup.sql).');
+    return;
+  }
   pendingDocFile = null;
   document.getElementById('docFileInput').value = '';
   setPendingDocFile(null);
   document.getElementById('docUploadModalOverlay').classList.add('show');
 }
 function closeDocUploadModal(){
-  if(activeDocUploadTask){
-    activeDocUploadTask.cancel();
-    activeDocUploadTask = null;
+  if(activeDocUploadAbort){
+    activeDocUploadAbort.abort();
+    activeDocUploadAbort = null;
   }
   document.getElementById('docUploadModalOverlay').classList.remove('show');
   pendingDocFile = null;
@@ -1670,7 +1704,7 @@ document.getElementById('docUploadSave').addEventListener('click', ()=>{
   const by = getUploaderName();
   const category = docCategoryInput.value;
   const date = new Date().toISOString().slice(0,10);
-  uploadProjectBlob(currentProjectId, file.name, file, setDocUploadProgress).then(({ url, storagePath, size })=>{
+  uploadProjectBlob(currentProjectId, file.name, file, setDocUploadProgress).then(({ url, storagePath, size, storageBackend })=>{
     return db.collection('documents').add({
       projectId: currentProjectId,
       name: file.name,
@@ -1680,6 +1714,7 @@ document.getElementById('docUploadSave').addEventListener('click', ()=>{
       size: formatFileSize(size),
       url,
       storagePath,
+      storageBackend: storageBackend || 'supabase',
       mimeType: file.type || '',
       uploadedAt: new Date().toISOString(),
     });
@@ -1688,11 +1723,12 @@ document.getElementById('docUploadSave').addEventListener('click', ()=>{
     showToast('Документ загружен.');
     closeDocUploadModal();
   }).catch(err=>{
-    if(err && err.code !== 'storage/canceled'){
-      showToast('Ошибка загрузки: '+formatStorageError(err));
+    if(!/abort|canceled/i.test((err && err.message) || '')){
+      showToast('Ошибка загрузки: '+formatUploadError(err));
     }
   }).finally(resetDocUploadUi);
-});const docUploadZone = document.getElementById('docUploadZone');
+});
+const docUploadZone = document.getElementById('docUploadZone');
 const docFileInput = document.getElementById('docFileInput');
 docUploadZone.addEventListener('click', ()=>docFileInput.click());
 docFileInput.addEventListener('change', ()=>{
@@ -1726,12 +1762,7 @@ document.getElementById('docTableBody').addEventListener('click', e=>{
   if(btn.dataset.docAction==='delete'){
     if(!confirm(`Удалить «${doc.name}» из реестра?`)) return;
     const removeMeta = ()=>db.collection('documents').doc(doc.id).delete();
-    const chain = doc.storagePath
-      ? storage.ref(doc.storagePath).delete().catch(err=>{
-          if(err.code !== 'storage/object-not-found') throw err;
-        }).then(removeMeta)
-      : removeMeta();
-    chain.then(()=>{
+    deleteProjectFile(doc).then(removeMeta).then(()=>{
       logActivity(`удалил(а) документ «${doc.name}»`, getUploaderName());
       showToast('Документ удалён.');
     }).catch(err=>showToast('Ошибка удаления: '+err.message));

@@ -10,6 +10,7 @@ Internal dashboard for managing classroom/hall fitout projects (furniture, AV, l
   - `firebase.json`, `.firebaserc`, `firestore.rules`, `firestore.indexes.json`
   - `public/index.html` + `public/supplier-ai.js` — deployable copies, kept in sync with the root files above.
   - Firebase project ID: `b2b-projects-a7f51`.
+- `supabase/storage-setup.sql` — one-time SQL to create the `project-documents` Storage bucket (free tier, no card).
 - `Поставщики_по_кабинетам.xlsx`, `Эстрада_поставщики.xlsx` — sourcing/supplier research spreadsheets for specific rooms/halls.
 
 ## Two copies, always in sync
@@ -27,24 +28,74 @@ firebase deploy --only hosting
 firebase deploy --only hosting,firestore:rules
 ```
 
-## Real AI Supplier Search — implementation plan
+## Document uploads (Supabase Storage)
 
-The Supplier Search UI currently returns fictitious demo data (`supplierDB` in `supplier-ai.js`). To make it return real suppliers, the search has to run server-side via a Firebase Cloud Function (browser JS can't hold API keys safely, and Firebase's free Spark plan blocks Cloud Functions from calling external APIs anyway — only Google's own APIs are allowed on Spark).
+Project files (PDF, Excel, generated acts) are stored in **Supabase Storage** (free tier: **1 GB**, no credit card). Firestore keeps metadata only (`documents` collection).
 
-**Decided approach:**
-- **Search:** Google Custom Search JSON API — 100 free queries/day, then $5/1,000. Chosen over Bright Data's SERP API ($1.50/1,000 pay-as-you-go, no free tier) since this tool's volume is low and Bright Data's CAPTCHA-solving/stealth browsing is overkill for plain supplier lookups.
-- **Parsing/ranking:** Claude (Anthropic API) parses the raw search results into the existing supplier-card shape (name, location, price, lead time, MOQ, rating) and ranks them — a few cents per search run.
-- **Billing prerequisite:** the Firebase project must be on the **Blaze** (pay-as-you-go) plan to allow Cloud Functions outbound network calls at all. *(Status as of 2026-06-23: user needs to upgrade — not yet done.)* Usage should stay within Firebase's free monthly quota (2M function invocations, etc.) for this tool's volume.
+### Setup
 
-**Steps once Blaze is enabled:**
-1. Add a `functions/` directory to `firebase-deploy/` with a callable Cloud Function that calls Google Custom Search, then Claude, to produce ranked supplier results.
-2. Update `supplier-ai.js` to call that function instead of reading the local `supplierDB` object, keeping the existing UI/UX (agent-step animation, result cards, shortlist) unchanged.
-3. Provision and store as Firebase Function secrets:
-   - Google Custom Search API key + Custom Search Engine (CSE) ID
-   - Anthropic API key
-4. Deploy functions alongside hosting: `firebase deploy --only functions,hosting`.
+1. Create a project at [supabase.com](https://supabase.com) (free).
+2. **Project Settings → API** — copy **Project URL** and **anon public** key.
+3. Paste into `SUPABASE_URL` and `SUPABASE_ANON_KEY` in both HTML files (search for `YOUR_SUPABASE_`).
+4. **SQL Editor** — run `supabase/storage-setup.sql` (creates bucket + policies).
+5. Refresh the dashboard and upload a test file.
 
-**Not yet started** — blocked on the Blaze plan upgrade.
+Auth stays on **Firebase**; Supabase anon key is used only for file storage (UI requires Firebase login).
+
+## Real AI Supplier Search
+
+The Supplier Search UI calls a **callable Cloud Function** `searchSuppliers` (region `asia-southeast1`):
+
+1. **Google Custom Search JSON API** — web search (~100 free queries/day, then paid).
+2. **Claude (Anthropic API)** — parses snippets into ranked supplier cards (name, price, MOQ, lead time, source URL).
+
+If the function is missing, keys are not set, or the project is still on Spark, the UI **falls back to demo data** and shows a toast.
+
+### Prerequisites
+
+- Firebase project on **Blaze** (pay-as-you-go) — required for Cloud Functions outbound HTTP (same as Storage).
+- Signed-in user in the dashboard (function rejects unauthenticated calls).
+
+### One-time API setup
+
+1. **Google Custom Search**
+   - [Programmable Search Engine](https://programmablesearchengine.google.com/) → create engine → search the entire web.
+   - [Google Cloud Console](https://console.cloud.google.com/apis/library/customsearch.googleapis.com?project=b2b-projects-a7f51) → enable **Custom Search API**.
+   - Create an API key (Credentials) → copy **API key** and **Search engine ID (cx)**.
+
+2. **Anthropic**
+   - [console.anthropic.com](https://console.anthropic.com/) → API key.
+
+### Deploy function + secrets
+
+```powershell
+cd firebase-deploy
+npm install --prefix functions
+
+npx firebase-tools functions:secrets:set GOOGLE_CSE_API_KEY --project b2b-projects-a7f51
+npx firebase-tools functions:secrets:set GOOGLE_CSE_ID --project b2b-projects-a7f51
+npx firebase-tools functions:secrets:set ANTHROPIC_API_KEY --project b2b-projects-a7f51
+
+npx firebase-tools deploy --only functions --project b2b-projects-a7f51
+```
+
+Also deploy hosting after UI changes:
+
+```powershell
+npx firebase-tools deploy --only hosting --project b2b-projects-a7f51
+```
+
+### Limits
+
+- Max **8 items** per search run (Google CSE daily quota).
+- ~1 CSE query + 1 Claude call per item.
+
+### Files
+
+- `firebase-deploy/functions/index.js` — `searchSuppliers` callable
+- `supplier-ai.js` — client UI (live search + demo fallback)
+
+**Previously:** demo-only `supplierDB` in `supplier-ai.js`. **Now:** live search when function + secrets are deployed.
 
 ## Дорожная карта ИИ-функций (3 этапа)
 
