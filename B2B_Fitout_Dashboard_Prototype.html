@@ -1614,8 +1614,30 @@ function guessDocCategory(filename){
   if(['pdf','doc','docx'].includes(ext)) return 'Спецификация';
   return 'Прочее';
 }
+const CYR_TO_LAT = {
+  а:'a', б:'b', в:'v', г:'g', д:'d', е:'e', ё:'e', ж:'zh', з:'z', и:'i',
+  й:'j', к:'k', л:'l', м:'m', н:'n', о:'o', п:'p', р:'r', с:'s', т:'t',
+  у:'u', ф:'f', х:'kh', ц:'ts', ч:'ch', ш:'sh', щ:'shch', ъ:'', ы:'y', ь:'',
+  э:'e', ю:'yu', я:'ya'
+};
+function transliterate(str){
+  return String(str || '').split('').map(ch => {
+    const lower = ch.toLowerCase();
+    if(Object.prototype.hasOwnProperty.call(CYR_TO_LAT, lower)) return CYR_TO_LAT[lower];
+    return ch;
+  }).join('');
+}
 function sanitizeStorageFileName(name){
-  return (name||'file').replace(/[^\w.\-()а-яА-Я\s]/g,'_').replace(/\s+/g,'_').slice(0,120);
+  const base = (name || 'file').replace(/\\/g, '/').split('/').pop();
+  const dot = base.lastIndexOf('.');
+  let ext = dot > 0 ? base.slice(dot) : '';
+  ext = transliterate(ext).toLowerCase().replace(/[^a-z0-9.]/g, '');
+  let stem = transliterate(dot > 0 ? base.slice(0, dot) : base).toLowerCase();
+  stem = stem
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 80);
+  return (stem || 'file') + ext;
 }
 function getUploaderName(){
   if(currentUserProfile && currentUserProfile.displayName) return currentUserProfile.displayName;
@@ -1635,7 +1657,7 @@ function formatUploadError(err){
   if(/YOUR_SUPABASE|не настроен/i.test(msg)) return 'Supabase не настроен — скопируйте config.local.example.js в config.local.js и выполните supabase/storage-setup.sql';
   if(/row-level security|policy|403|401/i.test(msg)) return 'Нет доступа к Supabase Storage — выполните SQL из supabase/storage-setup.sql';
   if(/quota|limit|413/i.test(msg)) return 'Превышен лимит Supabase (free tier: 1 GB).';
-  if(/abort|canceled/i.test(msg)) return 'Загрузка отменена.';
+  if(/invalid key/i.test(msg)) return 'Недопустимое имя файла для хранилища — попробуйте переименовать файл (латиница/цифры).';
   return msg;
 }
 function uploadProjectBlob(projectId, filename, blob, onProgress){
