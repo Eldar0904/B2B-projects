@@ -36,66 +36,30 @@ Project files (PDF, Excel, generated acts) are stored in **Supabase Storage** (f
 
 1. Create a project at [supabase.com](https://supabase.com) (free).
 2. **Project Settings → API** — copy **Project URL** and **anon public** key.
-3. Paste into `SUPABASE_URL` and `SUPABASE_ANON_KEY` in both HTML files (search for `YOUR_SUPABASE_`).
+3. Copy `config.local.example.js` → `config.local.js` (root and `firebase-deploy/public/`) and paste your keys there. **Do not commit `config.local.js`** — it is in `.gitignore`.
 4. **SQL Editor** — run `supabase/storage-setup.sql` (creates bucket + policies).
 5. Refresh the dashboard and upload a test file.
 
 Auth stays on **Firebase**; Supabase anon key is used only for file storage (UI requires Firebase login).
 
-## Real AI Supplier Search
+## Real AI Supplier Search (Gemini — бесплатно)
 
-The Supplier Search UI calls a **callable Cloud Function** `searchSuppliers` (region `asia-southeast1`):
+Поиск поставщиков работает **напрямую из браузера** через **Gemini + Google Search** (free tier [Google AI Studio](https://aistudio.google.com/apikey)). Не нужны Blaze, Cloud Functions, Claude или Google CSE.
 
-1. **Google Custom Search JSON API** — web search (~100 free queries/day, then paid).
-2. **Claude (Anthropic API)** — parses snippets into ranked supplier cards (name, price, MOQ, lead time, source URL).
+### Setup
 
-If the function is missing, keys are not set, or the project is still on Spark, the UI **falls back to demo data** and shows a toast.
+1. Откройте [aistudio.google.com/apikey](https://aistudio.google.com/apikey) → **Create API key** (бесплатно).
+2. Вставьте ключ в `GEMINI_API_KEY` в `config.local.js` (см. `config.local.example.js`).
+3. Обновите дашборд → **ИИ-поиск поставщиков** → разберите позиции → **Найти поставщиков с ИИ**.
 
-### Prerequisites
+### Limits (free tier)
 
-- Firebase project on **Blaze** (pay-as-you-go) — required for Cloud Functions outbound HTTP (same as Storage).
-- Signed-in user in the dashboard (function rejects unauthenticated calls).
+- **Все позиции** из списка обрабатываются (сотни и больше).
+- Пакетами по **10 позиций** за один запрос Gemini (~5 с пауза между пакетами).
+- Кнопка **«Остановить»** — сохраняются уже найденные результаты.
+- При 429 (лимит) — автопауза ~65 с и повтор.
 
-### One-time API setup
-
-1. **Google Custom Search**
-   - [Programmable Search Engine](https://programmablesearchengine.google.com/) → create engine → search the entire web.
-   - [Google Cloud Console](https://console.cloud.google.com/apis/library/customsearch.googleapis.com?project=b2b-projects-a7f51) → enable **Custom Search API**.
-   - Create an API key (Credentials) → copy **API key** and **Search engine ID (cx)**.
-
-2. **Anthropic**
-   - [console.anthropic.com](https://console.anthropic.com/) → API key.
-
-### Deploy function + secrets
-
-```powershell
-cd firebase-deploy
-npm install --prefix functions
-
-npx firebase-tools functions:secrets:set GOOGLE_CSE_API_KEY --project b2b-projects-a7f51
-npx firebase-tools functions:secrets:set GOOGLE_CSE_ID --project b2b-projects-a7f51
-npx firebase-tools functions:secrets:set ANTHROPIC_API_KEY --project b2b-projects-a7f51
-
-npx firebase-tools deploy --only functions --project b2b-projects-a7f51
-```
-
-Also deploy hosting after UI changes:
-
-```powershell
-npx firebase-tools deploy --only hosting --project b2b-projects-a7f51
-```
-
-### Limits
-
-- Max **8 items** per search run (Google CSE daily quota).
-- ~1 CSE query + 1 Claude call per item.
-
-### Files
-
-- `firebase-deploy/functions/index.js` — `searchSuppliers` callable
-- `supplier-ai.js` — client UI (live search + demo fallback)
-
-**Previously:** demo-only `supplierDB` in `supplier-ai.js`. **Now:** live search when function + secrets are deployed.
+Legacy Cloud Function `searchSuppliers` в `firebase-deploy/functions/` больше не используется UI.
 
 ## Дорожная карта ИИ-функций (3 этапа)
 

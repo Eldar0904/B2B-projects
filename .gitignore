@@ -13,6 +13,8 @@ functions/node_modules/
 .env
 .env.*
 *.local
+config.local.js
+firebase-deploy/public/config.local.js
 
 # OS / editor cruft
 .DS_Store
