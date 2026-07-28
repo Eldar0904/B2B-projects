@@ -29,7 +29,7 @@
   .brand-mark{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#818cf8);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;}
   .brand-name{font-weight:700;font-size:15px;line-height:1.2;}
   .brand-sub{font-size:11px;color:#8a94a6;}
-  .nav{flex:1;padding:14px 12px;overflow-y:auto;}
+  .nav{flex:1;padding:14px 12px;overflow-y:auto;display:flex;flex-direction:column;}
   .nav-label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#67708b;padding:14px 10px 6px;}
   .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#c4cad6;cursor:pointer;font-weight:500;font-size:13.5px;margin-bottom:2px;transition:background .15s;}
   .nav-item svg{width:17px;height:17px;flex-shrink:0;}
@@ -369,10 +369,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v18M15 3v18"/><path d="M4 8h5M15 8h5M4 16h5M15 16h5"/></svg>
         Проверка и сравнение
       </div>
-      <div class="nav-item" data-view="updates">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-        Обновления
-      </div>
       <div class="nav-label">Рабочее пространство</div>
       <div class="nav-item" data-view="modules">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
@@ -381,6 +377,11 @@
       <div class="nav-item dashed" id="addModuleNav">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
         Добавить модуль…
+      </div>
+      <div style="flex:1;"></div>
+      <div class="nav-item" data-view="updates" style="margin-top:auto;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        Обновления
       </div>
     </div>
     <script>
@@ -1143,7 +1144,13 @@ function getSupabase(){
 
 /* ===================== GEMINI (supplier AI search, free tier) ===================== */
 /* https://aistudio.google.com/apikey — бесплатно, без карты */
-const GEMINI_API_KEY = window.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY';
+/* Keep on window so supplier-ai.js can read it (const is not always shared). */
+window.GEMINI_API_KEY = window.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY';
+var GEMINI_API_KEY = window.GEMINI_API_KEY;
+
+/* Skip Firebase login while building. Default ON; set window.DEV_SKIP_AUTH = false
+   in config.local.js when you want real sign-in again. */
+const DEV_SKIP_AUTH = window.DEV_SKIP_AUTH !== false;
 
 /* ===================== DATA ===================== */
 const TYPE_ICON = { 'Школа':'🏫', 'Детский сад':'🧸', 'Университет':'🎓', 'Музыкальная школа':'🎵' };
@@ -1758,7 +1765,7 @@ function setPendingDocFile(file){
 }
 function openDocUploadModal(){
   if(!currentProjectId){ showToast('Сначала откройте проект.'); return; }
-  if(!auth.currentUser){ showToast('Войдите в аккаунт, чтобы загружать документы.'); return; }
+  if(!auth.currentUser && !DEV_SKIP_AUTH){ showToast('Войдите в аккаунт, чтобы загружать документы.'); return; }
   if(!isSupabaseConfigured()){
     showToast('Supabase не настроен — укажите URL и anon key в коде (см. supabase/storage-setup.sql).');
     return;
@@ -1782,7 +1789,7 @@ document.getElementById('uploadDocBtn').addEventListener('click', openDocUploadM
 document.getElementById('docUploadCancel').addEventListener('click', closeDocUploadModal);
 document.getElementById('docUploadSave').addEventListener('click', ()=>{
   if(!pendingDocFile || !currentProjectId) return;
-  if(!auth.currentUser){ showToast('Войдите в аккаунт, чтобы загружать документы.'); return; }
+  if(!auth.currentUser && !DEV_SKIP_AUTH){ showToast('Войдите в аккаунт, чтобы загружать документы.'); return; }
   const saveBtn = document.getElementById('docUploadSave');
   const file = pendingDocFile;
   if(file.size > 50*1024*1024){ showToast('Файл больше 50 МБ — выберите меньший.'); return; }
@@ -2253,7 +2260,18 @@ function showApp(user){
     refreshTeamDependentSelects();
   });
 }
+function showAppAsGuest(){
+  document.getElementById('loginOverlay').style.display='none';
+  document.getElementById('appRoot').style.display='flex';
+  currentUserProfile = { displayName:'Гость (dev)', email:'dev@local' };
+  document.getElementById('currentUserName').textContent = 'Гость (dev)';
+  document.getElementById('currentUserEmail').textContent = 'вход отключён';
+  document.getElementById('currentUserAvatar').textContent = 'DV';
+  startRealtimeListeners();
+  refreshTeamDependentSelects();
+}
 function showLogin(){
+  if(DEV_SKIP_AUTH){ showAppAsGuest(); return; }
   document.getElementById('appRoot').style.display='none';
   document.getElementById('loginOverlay').style.display='flex';
   document.getElementById('loginEmailInput').value='';
@@ -2273,6 +2291,11 @@ function showLogin(){
 }
 
 auth.onAuthStateChanged(user=>{
+  if(DEV_SKIP_AUTH){
+    if(user) showApp(user);
+    else showAppAsGuest();
+    return;
+  }
   if(user){ showApp(user); } else { showLogin(); }
 });
 

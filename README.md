@@ -4,6 +4,7 @@ Internal dashboard for managing classroom/hall fitout projects (furniture, AV, l
 
 ## Project structure
 
+- `PROJECTS.md` — README for the **Проекты** section (structure, stages П1–П6, how it helps manage fitout jobs).
 - `B2B_Fitout_Dashboard_Prototype.html` — master copy of the dashboard. Single-file HTML app, no bundler, uses the Firebase **compat** SDK via `<script src>` tags. Edit this file first, then mirror changes into `firebase-deploy/public/index.html`.
 - `supplier-ai.js` — AI Supplier Search component, extracted from the dashboard HTML. Loaded as a classic script, shares global scope with the main inline script (relies on `projects`, `showToast()`, `renderKPIs()`, `supplierRunsCount` from the main script). Currently uses demo/fictitious supplier data (`supplierDB`) — see "Real supplier search" plan below.
 - `firebase-deploy/` — Firebase Hosting deploy scaffold.

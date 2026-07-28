@@ -4,3 +4,5 @@
 window.SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
 window.SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 window.GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY';
+/* true = no login screen (local building). false = require Firebase sign-in. */
+window.DEV_SKIP_AUTH = true;

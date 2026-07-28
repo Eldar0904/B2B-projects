@@ -15,7 +15,11 @@ const SUPPLIER_SEARCH_REGION = 'Казахстан';
 const SUPPLIER_BATCH_SIZE = 10;
 const GEMINI_BATCH_DELAY_MS = 5000;
 const GEMINI_RATE_LIMIT_WAIT_MS = 65000;
-const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-2.5-flash'];
+const GEMINI_MODELS = [
+  'gemini-3.5-flash',
+  'gemini-3.1-flash-lite',
+  'gemini-2.5-flash-lite',
+];
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 const supplierDB = {
@@ -51,9 +55,18 @@ function matchSupplierKey(itemName){
 }
 
 function isGeminiConfigured(){
-  return typeof GEMINI_API_KEY === 'string'
-    && GEMINI_API_KEY.length > 10
-    && !GEMINI_API_KEY.includes('YOUR_');
+  const key = (typeof window !== 'undefined' && window.GEMINI_API_KEY)
+    || (typeof GEMINI_API_KEY !== 'undefined' ? GEMINI_API_KEY : '')
+    || '';
+  return typeof key === 'string'
+    && key.length > 10
+    && !key.includes('YOUR_');
+}
+
+function getGeminiApiKey(){
+  return (typeof window !== 'undefined' && window.GEMINI_API_KEY)
+    || (typeof GEMINI_API_KEY !== 'undefined' ? GEMINI_API_KEY : '')
+    || '';
 }
 
 function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
@@ -104,7 +117,7 @@ async function geminiGenerateWithSearch(prompt){
   for(const model of GEMINI_MODELS){
     for(let attempt = 0; attempt < 3; attempt++){
       try{
-        const res = await fetch(`${GEMINI_API_BASE}/${model}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`, {
+        const res = await fetch(`${GEMINI_API_BASE}/${model}:generateContent?key=${encodeURIComponent(getGeminiApiKey())}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -134,7 +147,7 @@ async function geminiGenerateWithSearch(prompt){
           await sleep(GEMINI_RATE_LIMIT_WAIT_MS);
           continue;
         }
-        if(/not found|404|model/i.test(String(err.message))) break;
+        if(/not found|404|no longer available|not available to new users|deprecated|shutdown|unsupported/i.test(String(err.message))) break;
         throw err;
       }
     }
@@ -332,7 +345,7 @@ function runAgentSteps(steps, onDone){
   stepsEl.innerHTML = steps.map((s,i)=>`<div class="agent-step" id="step-${i}"><div class="dot"></div><span id="step-text-${i}">${s}</span></div>`).join('');
   agentCard.style.display='block';
   document.getElementById('searchProgressWrap').style.display='';
-  document.getElementById('resultsWrap').innerHTML='';
+  // Do not clear #resultsWrap here — live search header/blocks are already mounted.
 
   let i = 0;
   function advance(){
@@ -406,7 +419,8 @@ document.getElementById('cancelSearchBtn').addEventListener('click', ()=>{
 document.getElementById('runAgentBtn').addEventListener('click', ()=>{
   if(supplierSearchRunning) return;
   if(!parsedItems.length){ showToast('Сначала разберите список позиций.'); return; }
-  if(typeof auth !== 'undefined' && !auth.currentUser){
+  // Require login only when DEV_SKIP_AUTH is explicitly false
+  if(typeof auth !== 'undefined' && !auth.currentUser && typeof DEV_SKIP_AUTH !== 'undefined' && DEV_SKIP_AUTH === false){
     showToast('Войдите в аккаунт для поиска поставщиков.');
     return;
   }

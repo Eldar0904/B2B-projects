@@ -3,44 +3,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Only signed-in users may read or write any data.
-    // Tighten further later (e.g. per-user roles) if needed.
-    match /projects/{projectId} {
-      allow read, write: if request.auth != null;
-    }
-
-    match /tasks/{taskId} {
-      allow read, write: if request.auth != null;
-    }
-
-    match /documents/{docId} {
-      allow read, write: if request.auth != null;
-    }
-
-    match /meta/{metaId} {
-      allow read, write: if request.auth != null;
-    }
-
-    match /changelog/{entryId} {
-      allow read, write: if request.auth != null;
-    }
-
-    match /team/{memberId} {
-      allow read, write: if request.auth != null;
-    }
-
-    match /activity/{entryId} {
-      allow read, write: if request.auth != null;
-    }
-
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow create, update: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Deny everything else by default.
+    // TEMPORARY (building phase): open access, no Firebase Auth required.
+    // Re-lock before production — restore `if request.auth != null` on each match.
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if true;
     }
   }
 }
