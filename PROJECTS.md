@@ -29,6 +29,9 @@ Sidebar → Проекты
         └── Обзор — passport + budget spend
 ```
 
+Photo QC lives in the **Фото-контроль** module (sidebar / Модули), not inside project tabs.
+```
+
 Also tied in:
 
 - **Дэшборд** — active-projects KPI and short list

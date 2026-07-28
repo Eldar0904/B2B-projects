@@ -168,6 +168,25 @@
   .icon-btn svg{width:14px;height:14px;color:var(--text-dim);}
   .icon-btn:hover{background:var(--bg);}
 
+  /* PHOTO QA */
+  .photoqa-intro{font-size:12.5px;color:var(--text-dim);margin:0 0 14px;max-width:560px;line-height:1.45;}
+  .photoqa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
+  .photoqa-card{border:1px solid var(--border);border-radius:10px;background:#fff;overflow:hidden;display:flex;flex-direction:column;}
+  .photoqa-thumb{aspect-ratio:4/3;background:#eef0f3;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;}
+  .photoqa-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .photoqa-thumb-empty{font-size:12px;color:var(--text-faint);}
+  .photoqa-body{padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;flex:1;}
+  .photoqa-name{font-size:12.5px;font-weight:600;line-height:1.3;word-break:break-word;}
+  .photoqa-meta{font-size:11.5px;color:var(--text-dim);}
+  .photoqa-actions{display:flex;gap:6px;margin-top:4px;}
+  .photoqa-empty{grid-column:1/-1;text-align:center;padding:36px 16px;color:var(--text-faint);font-size:13px;border:1.5px dashed var(--border);border-radius:10px;background:var(--bg);}
+  .photoqa-select{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-dim);font-weight:600;cursor:pointer;user-select:none;}
+  .photoqa-select input{margin:0;}
+  .photoqa-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;}
+  .photoqa-results-table td:nth-child(3){white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .badge-amber{background:var(--amber-bg);color:var(--amber);}
+  .badge-red{background:var(--red-bg);color:var(--red);}
+
   /* SUPPLIERS / AI */
   .ai-banner{background:linear-gradient(120deg,#312e81,#4f46e5 60%,#6366f1);border-radius:var(--radius);padding:22px 26px;color:#fff;margin-bottom:22px;display:flex;justify-content:space-between;align-items:center;}
   .ai-banner h2{margin:0 0 6px;font-size:18px;font-weight:800;}
@@ -369,6 +388,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v18M15 3v18"/><path d="M4 8h5M15 8h5M4 16h5M15 16h5"/></svg>
         Проверка и сравнение
       </div>
+      <div class="nav-item" data-view="photoqa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Фото-контроль
+      </div>
       <div class="nav-label">Рабочее пространство</div>
       <div class="nav-item" data-view="modules">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
@@ -390,7 +413,7 @@
       (function(){
         try{
           var cached = JSON.parse(localStorage.getItem('moduleSettings') || '{}');
-          var navKeys = { suppliers:'suppliers', compare:'compare', dashboard:'dashboard' };
+          var navKeys = { suppliers:'suppliers', compare:'compare', dashboard:'dashboard', photoqa:'photoqa' };
           Object.keys(navKeys).forEach(function(key){
             if(cached[key] === false){
               var navEl = document.querySelector('.nav-item[data-view="'+navKeys[key]+'"]');
@@ -801,6 +824,54 @@
 
       </div>
 
+      <!-- ===================== PHOTO QA MODULE ===================== -->
+      <div class="view" id="view-photoqa">
+        <div class="ai-banner" style="background:linear-gradient(120deg,#155e75,#0891b2 60%,#22d3ee);">
+          <div>
+            <h2>Фото-контроль поставок</h2>
+            <p>Загрузите фото с объекта, укажите список позиций и сверьте комплектацию через Gemini Vision. Результаты сохраняются в проекте.</p>
+          </div>
+          <div class="ai-banner-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-head">
+            <div class="card-title">Проект</div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <select id="photoQaModuleProjectSelect" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;min-width:260px;">
+              <option value="">— выберите проект —</option>
+            </select>
+          </div>
+        </div>
+        <div id="photoQaWorkspace" style="display:none;">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Фото-контроль поставок</div>
+              <p class="photoqa-intro">Загрузите фото, вставьте список позиций и нажмите «Проверить с ИИ» (Gemini Vision). Отметьте фото галочкой «В проверку» — иначе возьмутся первые до 4.</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-ghost btn-sm" id="photoQaCancelBtn" type="button" style="display:none;">Остановить</button>
+              <button class="btn btn-ghost btn-sm" id="photoQaCheckBtn" type="button" disabled>Проверить с ИИ</button>
+              <button class="btn btn-primary btn-sm" id="uploadPhotoQaBtn" type="button">+ Загрузить фото</button>
+            </div>
+          </div>
+          <div class="photoqa-panel">
+            <div class="card-title" style="margin-bottom:8px;font-size:13px;">Список позиций для проверки</div>
+            <textarea class="import-box" id="photoQaItemsBox" placeholder="Одна позиция на строку, например:&#10;Парта ученическая 2-местная&#10;Стул ученический&#10;Доска интерактивная 75&#10;Шкаф для документов" style="min-height:90px;"></textarea>
+            <div id="photoQaProgressWrap" style="display:none;margin-top:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;">
+                <span id="photoQaCheckStatus" style="font-size:12px;color:var(--text-dim);"></span>
+                <span id="photoQaProgressPct" style="font-size:12px;font-weight:700;color:var(--accent);min-width:36px;text-align:right;">0%</span>
+              </div>
+              <div class="search-progress-track" style="margin:0;"><div class="search-progress-fill" id="photoQaProgressFill" style="width:0%"></div></div>
+            </div>
+          </div>
+          <div id="photoQaResultsWrap" style="display:none;margin-bottom:16px;"></div>
+          <div class="photoqa-grid" id="photoQaGrid"></div>
+        </div>
+        <div id="photoQaPickHint" class="photoqa-empty" style="margin-top:0;">Выберите проект выше, чтобы загружать фото и запускать проверку.</div>
+      </div>
+
       <!-- ===================== MODULES ===================== -->
       <div class="view" id="view-modules">
         <p style="color:var(--text-dim);font-size:13px;margin-bottom:18px;max-width:600px;">PINE создан, чтобы расти вместе с вашей командой. Каждый модуль ниже работает независимо — включайте существующие или добавляйте новые (например, «Бюджетирование», «Отчётность», «Осмотры объектов», «Портал клиента») без нарушения текущих данных.</p>
@@ -839,6 +910,13 @@
               <b>Проверка и сравнение</b><div class="toggle on"></div>
             </div>
             <p style="font-size:12px;color:var(--text-dim);margin:8px 0 0;">Сравнение комплектаций и проверка полноты спецификации.</p>
+          </div>
+          <div class="module-card" data-nav-view="photoqa" data-module="photoqa">
+            <div class="module-icon" style="background:#ecfeff"><svg viewBox="0 0 24 24" fill="none" stroke="#0891b2" stroke-width="2" width="18" height="18"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <b>Фото-контроль</b><div class="toggle on"></div>
+            </div>
+            <p style="font-size:12px;color:var(--text-dim);margin:8px 0 0;">Сверка комплектации на фото с объектом (Gemini Vision).</p>
           </div>
           <div class="module-card" style="opacity:.6;" data-planned="true">
             <div class="module-icon" style="background:#f2f4f7"><svg viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" width="18" height="18"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg></div>
@@ -902,7 +980,7 @@
             <li><b>ИИ-ассистент закупщика</b> (вопросы по нормативам) — свободные вопросы-ответы по нормативке.</li>
             <li><b>Черновик дефектного акта</b> по тексту/фото — нужна генерация текста (и зрение — если по фото).</li>
             <li><b>Черновики писем/уведомлений поставщикам</b> — свободное составление текста; можно начать с шаблонов и перейти на LLM для нюансов позже.</li>
-            <li><b>Распознавание комплектации на фото / фото-контроль поставок</b> — нужна обученная модель компьютерного зрения, самый трудоёмкий пункт списка.</li>
+            <li><b>Распознавание комплектации на фото / фото-контроль поставок</b> — каркас + Gemini Vision MVP (список позиций → найдено/нет/неясно). Своя CV-модель — позже.</li>
           </ul>
           <p style="font-size:11.5px;color:var(--text-faint);margin:12px 0 0;line-height:1.5;">Группа «строим первым» закрывает Этапы 1–2 их дорожной карты (база цен, генерация спецификаций/актов) — то есть реальную ценность можно дать до подключения любого LLM API. Этап 3+ (фото-контроль, Q&A, риск-предсказание) — там, где уже нужны обученные модели или LLM, и дорожная карта это уже предполагает.</p>
         </div>
@@ -1039,6 +1117,38 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" id="docUploadCancel">Отмена</button>
       <button class="btn btn-primary" id="docUploadSave" disabled>Загрузить</button>
+    </div>
+  </div>
+</div>
+
+<!-- PHOTO QA UPLOAD MODAL -->
+<div class="modal-overlay" id="photoQaUploadModalOverlay">
+  <div class="modal">
+    <h3>Загрузить фото для контроля</h3>
+    <input type="file" id="photoQaFileInput" hidden multiple accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif">
+    <div class="doc-upload-zone" id="photoQaUploadZone">
+      <div style="font-size:24px;line-height:1;">📷</div>
+      <div class="doc-upload-zone-name" id="photoQaUploadFileName">Нажмите или перетащите фото</div>
+      <div class="doc-upload-zone-hint">JPEG, PNG, WebP — до 50 МБ · можно несколько файлов</div>
+    </div>
+    <div class="field" style="margin-top:16px;">
+      <label>Помещение / зона (необязательно)</label>
+      <input id="photoQaRoomInput" placeholder="например, Эстрада · каб. 3">
+    </div>
+    <div class="field">
+      <label>Заметка (необязательно)</label>
+      <input id="photoQaNoteInput" placeholder="например, приёмка 28.07, вид с двери">
+    </div>
+    <div id="photoQaUploadProgressWrap" style="display:none;margin-top:10px;">
+      <div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:6px;">
+        <span id="photoQaUploadStatus" style="font-size:12px;color:var(--text-dim);"></span>
+        <span id="photoQaUploadPct" style="font-size:12px;font-weight:700;color:var(--accent);">0%</span>
+      </div>
+      <div class="search-progress-track" style="margin:0;"><div class="search-progress-fill" id="photoQaUploadFill" style="width:0%"></div></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="photoQaUploadCancel" type="button">Отмена</button>
+      <button class="btn btn-primary" id="photoQaUploadSave" type="button" disabled>Загрузить</button>
     </div>
   </div>
 </div>
@@ -1203,6 +1313,7 @@ let currentUserProfile = null;
 let projects = [];
 let tasks = [];
 let documents = [];
+let photoChecks = [];
 let changelog = [];
 let moduleSettings = {};
 
@@ -1231,7 +1342,7 @@ let currentProjectId = null;
 let supplierRunsCount = 0;
 
 /* ===================== NAV ===================== */
-const views = ['dashboard','projects','detail','suppliers','compare','modules','updates'];
+const views = ['dashboard','projects','detail','suppliers','compare','photoqa','modules','updates'];
 function showView(name){
   views.forEach(v=>document.getElementById('view-'+v).classList.toggle('active', v===name));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===name));
@@ -1241,12 +1352,17 @@ function showView(name){
     detail:['Детали проекта','Задачи, документы и закупки по этому проекту'],
     suppliers:['ИИ-поиск поставщиков','Импортируйте позиции → агент находит и ранжирует поставщиков'],
     compare:['Проверка и сравнение','Сравнение комплектаций и проверка полноты спецификации — без внешних сервисов'],
+    photoqa:['Фото-контроль','Сверка комплектации на фото с объектом — Gemini Vision'],
     modules:['Модули','Управляйте активными модулями и добавляйте новые возможности'],
     updates:['Обновления','История решений и изменений — добавляйте записи сами или они появляются автоматически'],
   };
   document.getElementById('pageTitle').textContent = titles[name][0];
   document.getElementById('pageSub').textContent = titles[name][1];
   document.getElementById('shortlistBar').classList.toggle('show', name==='suppliers' && shortlist.length>0);
+  if(name === 'photoqa'){
+    refreshPhotoQaModuleSelect();
+    syncPhotoQaWorkspace();
+  }
 }
 document.querySelectorAll('.nav-item[data-view]').forEach(el=>{
   el.addEventListener('click', ()=>{
@@ -1321,6 +1437,37 @@ document.querySelectorAll('.module-card .toggle').forEach(toggleEl=>{
   });
 });
 document.getElementById('newProjectBtn').addEventListener('click', ()=>openProjectModal());
+
+function refreshPhotoQaModuleSelect(){
+  const sel = document.getElementById('photoQaModuleProjectSelect');
+  if(!sel) return;
+  const cur = sel.value;
+  const list = [...projects].sort((a,b)=>(a.name||'').localeCompare(b.name||'', 'ru'));
+  sel.innerHTML = '<option value="">— выберите проект —</option>' +
+    list.map(p=>`<option value="${p.id}">${escapeHtml(p.name||p.id)}</option>`).join('');
+  if(cur && list.some(p=>p.id===cur)) sel.value = cur;
+  else if(currentProjectId && list.some(p=>p.id===currentProjectId)) sel.value = currentProjectId;
+}
+function syncPhotoQaWorkspace(){
+  const sel = document.getElementById('photoQaModuleProjectSelect');
+  const workspace = document.getElementById('photoQaWorkspace');
+  const hint = document.getElementById('photoQaPickHint');
+  const id = sel && sel.value ? sel.value : '';
+  if(id){
+    currentProjectId = id;
+    if(workspace) workspace.style.display = '';
+    if(hint) hint.style.display = 'none';
+    renderPhotoChecks(id);
+    if(typeof updatePhotoQaCheckButton === 'function') updatePhotoQaCheckButton();
+  } else {
+    if(workspace) workspace.style.display = 'none';
+    if(hint) hint.style.display = '';
+    if(typeof updatePhotoQaCheckButton === 'function') updatePhotoQaCheckButton();
+  }
+}
+document.getElementById('photoQaModuleProjectSelect')?.addEventListener('change', ()=>{
+  syncPhotoQaWorkspace();
+});
 
 function showToast(msg){
   const t = document.getElementById('toast');
@@ -1863,6 +2010,241 @@ document.getElementById('docTableBody').addEventListener('click', e=>{
   }
 });
 
+/* ===================== PHOTO QA (skeleton — upload/registry only) ===================== */
+const PHOTO_QA_ACCEPT = ['image/jpeg','image/png','image/webp','image/gif'];
+const PHOTO_QA_EXTS = ['jpg','jpeg','png','webp','gif'];
+let pendingPhotoQaFiles = [];
+
+function isPhotoQaFile(file){
+  if(!file) return false;
+  const ext = (file.name || '').split('.').pop().toLowerCase();
+  return PHOTO_QA_ACCEPT.includes(file.type) || PHOTO_QA_EXTS.includes(ext);
+}
+function photoQaStatusBadge(status){
+  if(status === 'checked') return '<span class="badge badge-green">Проверено</span>';
+  if(status === 'checking') return '<span class="badge badge-blue">Проверка…</span>';
+  return '<span class="badge badge-gray">Загружено</span>';
+}
+function renderPhotoChecks(projectId){
+  const grid = document.getElementById('photoQaGrid');
+  if(!grid) return;
+  const items = photoChecks
+    .filter(p=>p.projectId===projectId)
+    .sort((a,b)=>(b.uploadedAt||b.date||'').localeCompare(a.uploadedAt||a.date||''));
+  if(items.length===0){
+    grid.innerHTML = `<div class="photoqa-empty">Фото пока нет — загрузите снимки поставки или комплектации кабинета.</div>`;
+    return;
+  }
+  grid.innerHTML = items.map(p=>{
+    const checked = (typeof photoQaSelectedIds !== 'undefined' && photoQaSelectedIds.has(p.id)) ? 'checked' : '';
+    const summary = p.aiResult && p.aiResult.summary
+      ? ` · ✓${p.aiResult.summary.found}/✗${p.aiResult.summary.missing}/?${p.aiResult.summary.unclear}`
+      : '';
+    return `<div class="photoqa-card" data-photo-id="${p.id}">
+      <div class="photoqa-thumb" data-photo-action="open" title="Открыть">
+        ${p.url
+          ? `<img src="${escapeHtml(p.url)}" alt="${escapeHtml(p.name||'')}" loading="lazy">`
+          : `<span class="photoqa-thumb-empty">Нет превью</span>`}
+      </div>
+      <div class="photoqa-body">
+        <label class="photoqa-select"><input type="checkbox" data-photo-select="${p.id}" ${checked}><span>В проверку</span></label>
+        <div class="photoqa-name">${escapeHtml(p.name||'—')}</div>
+        <div class="photoqa-meta">
+          ${photoQaStatusBadge(p.status||'uploaded')}${summary}
+          ${p.roomLabel ? ` · ${escapeHtml(p.roomLabel)}` : ''}
+        </div>
+        <div class="photoqa-meta">${fmtDate(p.date)} · ${escapeHtml(p.by||'—')} · ${escapeHtml(p.size||'—')}</div>
+        ${p.note ? `<div class="photoqa-meta">${escapeHtml(p.note)}</div>` : ''}
+        <div class="photoqa-actions">
+          ${p.url ? `<button class="btn btn-ghost btn-sm" type="button" data-photo-action="open">Открыть</button>` : ''}
+          ${p.aiResult && p.aiResult.results ? `<button class="btn btn-ghost btn-sm" type="button" data-photo-action="results">Результат</button>` : ''}
+          <button class="btn btn-ghost btn-sm" type="button" data-photo-action="delete">Удалить</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  if(typeof updatePhotoQaCheckButton === 'function') updatePhotoQaCheckButton();
+}
+function resetPhotoQaUploadUi(){
+  const saveBtn = document.getElementById('photoQaUploadSave');
+  const statusEl = document.getElementById('photoQaUploadStatus');
+  const wrap = document.getElementById('photoQaUploadProgressWrap');
+  const fill = document.getElementById('photoQaUploadFill');
+  const pctEl = document.getElementById('photoQaUploadPct');
+  saveBtn.textContent = pendingPhotoQaFiles.length > 1
+    ? `Загрузить (${pendingPhotoQaFiles.length})`
+    : 'Загрузить';
+  saveBtn.disabled = !pendingPhotoQaFiles.length;
+  if(statusEl) statusEl.textContent = '';
+  if(wrap) wrap.style.display = 'none';
+  if(fill) fill.style.width = '0%';
+  if(pctEl) pctEl.textContent = '0%';
+}
+function setPhotoQaUploadProgress(pct, label){
+  const saveBtn = document.getElementById('photoQaUploadSave');
+  const statusEl = document.getElementById('photoQaUploadStatus');
+  const wrap = document.getElementById('photoQaUploadProgressWrap');
+  const fill = document.getElementById('photoQaUploadFill');
+  const pctEl = document.getElementById('photoQaUploadPct');
+  const p = pct == null ? 0 : Math.max(0, Math.min(100, Math.round(Number(pct) * 100)));
+  if(wrap) wrap.style.display = 'block';
+  if(fill) fill.style.width = p + '%';
+  if(pctEl) pctEl.textContent = p + '%';
+  saveBtn.textContent = pct == null ? 'Загрузка…' : ('Загрузка… '+p+'%');
+  if(statusEl) statusEl.textContent = label || (pct == null ? 'Подключение к Supabase…' : 'Отправка…');
+}
+function setPendingPhotoQaFiles(fileList){
+  const files = Array.from(fileList || []).filter(isPhotoQaFile);
+  pendingPhotoQaFiles = files;
+  const nameEl = document.getElementById('photoQaUploadFileName');
+  if(!files.length){
+    nameEl.textContent = 'Нажмите или перетащите фото';
+  } else if(files.length === 1){
+    nameEl.textContent = files[0].name;
+  } else {
+    nameEl.textContent = files.length + ' файлов выбрано';
+  }
+  resetPhotoQaUploadUi();
+  if(fileList && fileList.length && !files.length){
+    showToast('Выберите изображения (JPEG, PNG, WebP).');
+  }
+}
+function openPhotoQaUploadModal(){
+  if(!currentProjectId){ showToast('Сначала откройте проект.'); return; }
+  if(!auth.currentUser && !DEV_SKIP_AUTH){ showToast('Войдите в аккаунт, чтобы загружать фото.'); return; }
+  if(!isSupabaseConfigured()){
+    showToast('Supabase не настроен — укажите URL и anon key в config.local.js.');
+    return;
+  }
+  pendingPhotoQaFiles = [];
+  document.getElementById('photoQaFileInput').value = '';
+  document.getElementById('photoQaRoomInput').value = '';
+  document.getElementById('photoQaNoteInput').value = '';
+  setPendingPhotoQaFiles([]);
+  document.getElementById('photoQaUploadModalOverlay').classList.add('show');
+}
+function closePhotoQaUploadModal(){
+  if(activeDocUploadAbort){
+    activeDocUploadAbort.abort();
+    activeDocUploadAbort = null;
+  }
+  document.getElementById('photoQaUploadModalOverlay').classList.remove('show');
+  pendingPhotoQaFiles = [];
+  document.getElementById('photoQaFileInput').value = '';
+  setPendingPhotoQaFiles([]);
+}
+async function uploadPhotoQaFiles(){
+  if(!pendingPhotoQaFiles.length || !currentProjectId) return;
+  if(!auth.currentUser && !DEV_SKIP_AUTH){ showToast('Войдите в аккаунт, чтобы загружать фото.'); return; }
+  const saveBtn = document.getElementById('photoQaUploadSave');
+  const files = pendingPhotoQaFiles.slice();
+  const roomLabel = document.getElementById('photoQaRoomInput').value.trim();
+  const note = document.getElementById('photoQaNoteInput').value.trim();
+  const by = getUploaderName();
+  const date = new Date().toISOString().slice(0,10);
+  for(const file of files){
+    if(file.size > 50*1024*1024){ showToast(`«${file.name}» больше 50 МБ — пропущен.`); continue; }
+  }
+  const toUpload = files.filter(f=>f.size <= 50*1024*1024);
+  if(!toUpload.length) return;
+  saveBtn.disabled = true;
+  let done = 0;
+  try{
+    for(const file of toUpload){
+      setPhotoQaUploadProgress(done / toUpload.length, `Файл ${done+1} из ${toUpload.length}`);
+      const { url, storagePath, size, storageBackend } = await uploadProjectBlob(
+        currentProjectId,
+        file.name,
+        file,
+        pct => setPhotoQaUploadProgress((done + Math.max(pct || 0.05, 0.05)) / toUpload.length, `Файл ${done+1} из ${toUpload.length}`)
+      );
+      setPhotoQaUploadProgress((done + 0.85) / toUpload.length, `Сохраняю метаданные ${done+1}…`);
+      await db.collection('photoChecks').add({
+        projectId: currentProjectId,
+        name: file.name,
+        roomLabel: roomLabel || '',
+        note: note || '',
+        by,
+        date,
+        size: formatFileSize(size),
+        url,
+        storagePath,
+        storageBackend: storageBackend || 'supabase',
+        mimeType: file.type || '',
+        status: 'uploaded',
+        aiResult: null,
+        uploadedAt: new Date().toISOString(),
+      });
+      done++;
+      setPhotoQaUploadProgress(done / toUpload.length, done < toUpload.length ? `Готово ${done}/${toUpload.length}` : 'Готово');
+    }
+    setPhotoQaUploadProgress(1, 'Готово');
+    logActivity(`загрузил(а) ${done} фото для фото-контроля`, by);
+    showToast(done === 1 ? 'Фото загружено.' : `Загружено фото: ${done}`);
+    closePhotoQaUploadModal();
+  }catch(err){
+    if(!/abort|canceled/i.test((err && err.message) || '')){
+      showToast('Ошибка загрузки: '+formatUploadError(err));
+    }
+  }finally{
+    resetPhotoQaUploadUi();
+  }
+}
+document.getElementById('uploadPhotoQaBtn').addEventListener('click', openPhotoQaUploadModal);
+document.getElementById('photoQaUploadCancel').addEventListener('click', closePhotoQaUploadModal);
+document.getElementById('photoQaUploadSave').addEventListener('click', ()=>{ uploadPhotoQaFiles(); });
+const photoQaUploadZone = document.getElementById('photoQaUploadZone');
+const photoQaFileInput = document.getElementById('photoQaFileInput');
+photoQaUploadZone.addEventListener('click', ()=>photoQaFileInput.click());
+photoQaFileInput.addEventListener('change', ()=>{
+  setPendingPhotoQaFiles(photoQaFileInput.files);
+});
+photoQaUploadZone.addEventListener('dragover', e=>{ e.preventDefault(); photoQaUploadZone.classList.add('dragover'); });
+photoQaUploadZone.addEventListener('dragleave', ()=>photoQaUploadZone.classList.remove('dragover'));
+photoQaUploadZone.addEventListener('drop', e=>{
+  e.preventDefault();
+  photoQaUploadZone.classList.remove('dragover');
+  setPendingPhotoQaFiles(e.dataTransfer.files);
+});
+document.getElementById('photoQaGrid').addEventListener('click', e=>{
+  if(e.target.closest('[data-photo-select]') || e.target.closest('.photoqa-select')) return;
+  const btn = e.target.closest('[data-photo-action]');
+  if(!btn) return;
+  const card = btn.closest('[data-photo-id]');
+  if(!card) return;
+  const photo = photoChecks.find(p=>p.id===card.dataset.photoId);
+  if(!photo) return;
+  if(btn.dataset.photoAction==='open' && photo.url){
+    window.open(photo.url, '_blank', 'noopener');
+    return;
+  }
+  if(btn.dataset.photoAction==='results' && photo.aiResult){
+    if(typeof renderPhotoQaResults === 'function'){
+      renderPhotoQaResults({
+        results: photo.aiResult.results,
+        summary: photo.aiResult.summary,
+        photoNames: photo.name,
+      });
+    }
+    return;
+  }
+  if(btn.dataset.photoAction==='delete'){
+    if(!confirm(`Удалить «${photo.name}»?`)) return;
+    const removeMeta = ()=>db.collection('photoChecks').doc(photo.id).delete();
+    deleteProjectFile(photo).then(removeMeta).then(()=>{
+      logActivity(`удалил(а) фото «${photo.name}»`, getUploaderName());
+      showToast('Фото удалено.');
+    }).catch(err=>showToast('Ошибка удаления: '+err.message));
+  }
+});
+document.getElementById('photoQaGrid').addEventListener('change', e=>{
+  const cb = e.target.closest('[data-photo-select]');
+  if(!cb) return;
+  if(typeof photoQaSelectedIds === 'undefined') return;
+  if(cb.checked) photoQaSelectedIds.add(cb.getAttribute('data-photo-select'));
+  else photoQaSelectedIds.delete(cb.getAttribute('data-photo-select'));
+});
+
 /* ===================== UPDATES / HISTORY ===================== */
 function renderUpdates(){
   const wrap = document.getElementById('updatesList');
@@ -2223,7 +2605,7 @@ function renderTeamPanel(){
 }
 
 /* ===================== AUTH GATE ===================== */
-let unsubProjects=null, unsubTasks=null, unsubDocuments=null, unsubChangelog=null, unsubModuleSettings=null;
+let unsubProjects=null, unsubTasks=null, unsubDocuments=null, unsubPhotoChecks=null, unsubChangelog=null, unsubModuleSettings=null;
 let unsubTeam=null, unsubActivity=null, unsubUsers=null;
 
 function ensureUserProfile(user){
@@ -2283,6 +2665,7 @@ function showLogin(){
   if(unsubProjects){ unsubProjects(); unsubProjects=null; }
   if(unsubTasks){ unsubTasks(); unsubTasks=null; }
   if(unsubDocuments){ unsubDocuments(); unsubDocuments=null; }
+  if(unsubPhotoChecks){ unsubPhotoChecks(); unsubPhotoChecks=null; }
   if(unsubChangelog){ unsubChangelog(); unsubChangelog=null; }
   if(unsubModuleSettings){ unsubModuleSettings(); unsubModuleSettings=null; }
   if(unsubTeam){ unsubTeam(); unsubTeam=null; }
@@ -2383,6 +2766,7 @@ function startRealtimeListeners(){
     renderDashboard();
     renderProjectCards();
     refreshProjSelect();
+    refreshPhotoQaModuleSelect();
   }, err=>showToast('Ошибка чтения проектов: '+err.message));
 
   unsubTasks = db.collection('tasks').onSnapshot(snap=>{
@@ -2402,6 +2786,14 @@ function startRealtimeListeners(){
       renderDocs(currentProjectId);
     }
   }, err=>showToast('Ошибка чтения документов: '+err.message));
+
+  unsubPhotoChecks = db.collection('photoChecks').onSnapshot(snap=>{
+    photoChecks = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    if(document.getElementById('view-photoqa')?.classList.contains('active') && currentProjectId){
+      renderPhotoChecks(currentProjectId);
+      if(typeof updatePhotoQaCheckButton === 'function') updatePhotoQaCheckButton();
+    }
+  }, err=>showToast('Ошибка чтения фото-контроля: '+err.message));
 
   unsubChangelog = db.collection('changelog').onSnapshot(snap=>{
     changelog = snap.docs.map(d=>({ id:d.id, ...d.data() }));
@@ -2485,5 +2877,6 @@ function seedTeamIfNeeded(){
 <script src="supplier-ai.js"></script>
 <script src="compare-tools.js"></script>
 <script src="act-generator.js"></script>
+<script src="photo-qa.js"></script>
 </body>
 </html>

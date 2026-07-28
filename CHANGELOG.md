@@ -6,6 +6,30 @@ Update this file at the end of each work session — newest entry on top.
 
 ---
 
+## 2026-07-28 — Photo QA Gemini Vision MVP
+
+**Why:** next step after upload/registry skeleton — check fitout/delivery photos against an item list without training a custom CV model.
+
+**Added `photo-qa.js`:** Gemini multimodal (flash models) takes up to 4 photos + up to 40 positions → JSON `found|missing|unclear` with confidence + Russian note. Results table in the tab; `aiResult` saved on each `photoChecks` doc; status `checking` → `checked`. Checkbox «В проверку» on cards; if none selected, first 4 photos are used.
+
+**Needs:** `GEMINI_API_KEY` in `config.local.js`. Photos must be publicly fetchable from Supabase (CORS).
+
+**Mirrored** to `firebase-deploy/public/` (`index.html` + `photo-qa.js`).
+
+---
+
+## 2026-07-28 — Photo QA UI skeleton (upload + registry)
+
+**Why:** starting Stage 3 roadmap item «Распознавание комплектации на фото / фото-контроль» with a UI shell before Gemini Vision or a custom CV model.
+
+**Added tab «Фото-контроль»** on project detail (alongside Задачи / Документы / Закупки / Обзор). Upload JPEG/PNG/WebP (multi-file) via existing Supabase `project-documents` bucket; metadata in new Firestore collection `photoChecks` (`projectId`, room label, note, status=`uploaded`, `aiResult=null`). Grid with thumbnails, open, delete. Button «Проверить с ИИ» present but disabled (next phase). Stat strip shows photo count.
+
+**Not built:** Vision check, spec compare, defect-act draft from photos.
+
+**Mirrored** to `firebase-deploy/public/index.html`.
+
+---
+
 ## 2026-06-25 — Virtual office: presence + activity feed, team chat, roster editor
 
 **Why:** Eldar asked to turn the dashboard into a "virtual office" — team presence, the ability to message the team, and a way to edit the team and see who's assigned where. Scoped via three explicit choices: presence + activity feed layered onto the existing dashboard (not a separate view), one shared team-wide chat channel (not per-project threads), and a Firestore-backed roster editor (project/task assignment stays on the existing dropdowns, no new workload view).
