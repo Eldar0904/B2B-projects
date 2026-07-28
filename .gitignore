@@ -16,6 +16,9 @@ functions/node_modules/
 config.local.js
 firebase-deploy/public/config.local.js
 
+# Nested repo — lives at github.com/Eldar0904/catalog-matcher (own remote)
+catalog-matcher/
+
 # OS / editor cruft
 .DS_Store
 Thumbs.db
