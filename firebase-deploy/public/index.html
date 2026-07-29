@@ -386,7 +386,7 @@
       </div>
       <div class="nav-item" data-view="compare">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v18M15 3v18"/><path d="M4 8h5M15 8h5M4 16h5M15 16h5"/></svg>
-        Проверка и сравнение
+        Подбор по каталогу
       </div>
       <div class="nav-item" data-view="photoqa">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -644,93 +644,9 @@
         <div id="resultsWrap"></div>
       </div>
 
-      <!-- ===================== COMPARE & COMPLETENESS ===================== -->
+      <!-- ===================== CATALOG MATCHING ===================== -->
       <div class="view" id="view-compare">
-
-        <!-- Tab bar -->
-        <div style="display:flex;gap:0;margin-bottom:24px;border-bottom:2px solid var(--border);">
-          <button class="cmp-tab" data-cmp-tab="match"
-            style="padding:9px 22px;font-size:13px;font-weight:600;background:none;border:none;border-bottom:3px solid var(--blue);margin-bottom:-2px;color:var(--blue);cursor:pointer;">
-            Сравнение списков
-          </button>
-          <button class="cmp-tab" data-cmp-tab="completeness"
-            style="padding:9px 22px;font-size:13px;font-weight:600;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--text-dim);cursor:pointer;">
-            Полнота спецификации
-          </button>
-          <button class="cmp-tab" data-cmp-tab="catalog"
-            style="padding:9px 22px;font-size:13px;font-weight:600;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--text-dim);cursor:pointer;">
-            Подбор по каталогу
-          </button>
-        </div>
-
-        <!-- ── Tab: Match ── -->
-        <div id="cmpTabMatch">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">
-
-            <!-- Zone A -->
-            <div class="cmp-drop-zone" id="dropZoneA"
-              style="border:2px dashed var(--border);border-radius:14px;padding:16px;background:var(--bg);transition:border-color .15s,background .15s;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <span style="font-size:11.5px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">Комплектация А</span>
-                <button onclick="document.getElementById('priceListFileA').click()"
-                  style="font-size:11.5px;padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:white;cursor:pointer;color:var(--text-dim);">
-                  📂 Файл
-                </button>
-              </div>
-              <textarea class="import-box" id="compareBoxA" style="min-height:150px;resize:vertical;"
-                placeholder="Школьные парты (2-местные) x120&#10;Стулья для класса x240&#10;Интерактивные доски 75&quot; x15&#10;&#10;— или перетащите .xlsx / .csv —"></textarea>
-              <input type="file" id="priceListFileA" accept=".xlsx,.xls,.csv" style="display:none;">
-            </div>
-
-            <!-- Zone B -->
-            <div class="cmp-drop-zone" id="dropZoneB"
-              style="border:2px dashed var(--border);border-radius:14px;padding:16px;background:var(--bg);transition:border-color .15s,background .15s;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <span style="font-size:11.5px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">Комплектация Б</span>
-                <button onclick="document.getElementById('priceListFileB').click()"
-                  style="font-size:11.5px;padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:white;cursor:pointer;color:var(--text-dim);">
-                  📂 Файл
-                </button>
-              </div>
-              <textarea class="import-box" id="compareBoxB" style="min-height:150px;resize:vertical;"
-                placeholder="Школьные парты (2-местные) x118&#10;Стулья для класса x240&#10;Документ-камеры x15&#10;&#10;— или перетащите .xlsx / .csv —"></textarea>
-              <input type="file" id="priceListFileB" accept=".xlsx,.xls,.csv" style="display:none;">
-            </div>
-          </div>
-
-          <div style="display:flex;justify-content:center;margin-bottom:28px;">
-            <button class="btn btn-primary" id="runCompareBtn" style="padding:10px 36px;font-size:14px;font-weight:700;">
-              Подобрать →
-            </button>
-          </div>
-          <div id="compareResultsWrap"></div>
-        </div>
-
-        <!-- ── Tab: Completeness ── -->
-        <div id="cmpTabCompleteness" style="display:none;">
-          <div class="cmp-drop-zone" id="dropZoneC"
-            style="border:2px dashed var(--border);border-radius:14px;padding:16px;background:var(--bg);margin-bottom:18px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <span style="font-size:11.5px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">Спецификация</span>
-              <button onclick="document.getElementById('priceListFileC').click()"
-                style="font-size:11.5px;padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:white;cursor:pointer;color:var(--text-dim);">
-                📂 Файл
-              </button>
-            </div>
-            <textarea class="import-box" id="completenessBox" style="min-height:180px;resize:vertical;"
-              placeholder="Школьные парты (2-местные) x120&#10;Стулья для класса x240&#10;Интерактивные доски 75&quot; x15&#10;&#10;— или перетащите .xlsx / .csv —"></textarea>
-            <input type="file" id="priceListFileC" accept=".xlsx,.xls,.csv" style="display:none;">
-          </div>
-          <div style="display:flex;justify-content:center;margin-bottom:28px;">
-            <button class="btn btn-primary" id="runCompletenessBtn" style="padding:10px 36px;font-size:14px;font-weight:700;">
-              Проверить →
-            </button>
-          </div>
-          <div id="completenessResultsWrap"></div>
-        </div>
-
-        <!-- ── Tab: Catalog Matching ── -->
-        <div id="cmpTabCatalog" style="display:none;">
+        <div id="cmpTabCatalog">
           <div id="catalogMatcherApiBridge" style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:18px;background:#f8fafc;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
               <div>
@@ -818,10 +734,8 @@
           <div id="catalogMatchResultsWrap"></div>
         </div>
 
-        <!-- Legacy stubs (kept for JS compat, not visible) -->
         <div id="priceListPreview" style="display:none;"></div>
         <input type="file" id="priceListFile" accept=".xlsx,.xls,.csv" style="display:none;">
-
       </div>
 
       <!-- ===================== PHOTO QA MODULE ===================== -->
@@ -907,9 +821,9 @@
           <div class="module-card" data-nav-view="compare" data-module="compare">
             <div class="module-icon" style="background:#eef2ff"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" width="18" height="18"><path d="M9 3v18M15 3v18"/><path d="M4 8h5M15 8h5M4 16h5M15 16h5"/></svg></div>
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <b>Проверка и сравнение</b><div class="toggle on"></div>
+              <b>Подбор по каталогу</b><div class="toggle on"></div>
             </div>
-            <p style="font-size:12px;color:var(--text-dim);margin:8px 0 0;">Сравнение комплектаций и проверка полноты спецификации.</p>
+            <p style="font-size:12px;color:var(--text-dim);margin:8px 0 0;">Подбор позиций по каталогу поставщика или гос. смете.</p>
           </div>
           <div class="module-card" data-nav-view="photoqa" data-module="photoqa">
             <div class="module-icon" style="background:#ecfeff"><svg viewBox="0 0 24 24" fill="none" stroke="#0891b2" stroke-width="2" width="18" height="18"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
@@ -1354,7 +1268,7 @@ function showView(name){
     projects:['Проекты','Каждый проект оснащения — добавляйте задачи, назначайте команду, следите за прогрессом'],
     detail:['Детали проекта','Задачи, документы и закупки по этому проекту'],
     suppliers:['ИИ-поиск поставщиков','Импортируйте позиции → агент находит и ранжирует поставщиков'],
-    compare:['Проверка и сравнение','Сравнение комплектаций и проверка полноты спецификации — без внешних сервисов'],
+    compare:['Подбор по каталогу','Подбор позиций по каталогу поставщика или гос. смете'],
     photoqa:['Фото-контроль','Сверка комплектации на фото с объектом — Gemini Vision'],
     modules:['Модули','Управляйте активными модулями и добавляйте новые возможности'],
     updates:['Обновления','История решений и изменений — добавляйте записи сами или они появляются автоматически'],

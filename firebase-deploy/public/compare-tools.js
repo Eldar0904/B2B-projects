@@ -434,13 +434,17 @@ function renderCompareResults(diff) {
   wrap.innerHTML = html;
 }
 
-document.getElementById('runCompareBtn').addEventListener('click', function() {
-  _catCache = {};   // clear cache between runs
-  var rawA = document.getElementById('compareBoxA').value.trim();
-  var rawB = document.getElementById('compareBoxB').value.trim();
-  if (!rawA || !rawB) { showToast('Вставьте обе комплектации (А и Б) перед сравнением.'); return; }
-  renderCompareResults(diffLists(parseList(rawA), parseList(rawB)));
-});
+(function(){
+  var btn = document.getElementById('runCompareBtn');
+  if (!btn) return;
+  btn.addEventListener('click', function() {
+    _catCache = {};
+    var rawA = document.getElementById('compareBoxA').value.trim();
+    var rawB = document.getElementById('compareBoxB').value.trim();
+    if (!rawA || !rawB) { showToast('Вставьте обе комплектации (А и Б) перед сравнением.'); return; }
+    renderCompareResults(diffLists(parseList(rawA), parseList(rawB)));
+  });
+})();
 
 
 /* -------------------------------------------------------------------------
@@ -746,12 +750,16 @@ function renderCompletenessResults(result, totalItems) {
   wrap.innerHTML = html;
 }
 
-document.getElementById('runCompletenessBtn').addEventListener('click', function() {
-  var raw = document.getElementById('completenessBox').value.trim();
-  if (!raw) { showToast('Вставьте перечень позиций перед проверкой.'); return; }
-  var items = parseList(raw);
-  renderCompletenessResults(checkCompleteness(items), items.length);
-});
+(function(){
+  var btn = document.getElementById('runCompletenessBtn');
+  if (!btn) return;
+  btn.addEventListener('click', function() {
+    var raw = document.getElementById('completenessBox').value.trim();
+    if (!raw) { showToast('Вставьте перечень позиций перед проверкой.'); return; }
+    var items = parseList(raw);
+    renderCompletenessResults(checkCompleteness(items), items.length);
+  });
+})();
 
 
 /* -------------------------------------------------------------------------
@@ -843,16 +851,16 @@ function loadFileIntoTextarea(file, textareaId) {
   else reader.readAsArrayBuffer(file);
 }
 
-// -- File input listeners ---------------------------------------------
-document.getElementById('priceListFileA').addEventListener('change', function(e) {
-  loadFileIntoTextarea(e.target.files[0], 'compareBoxA');
-});
-document.getElementById('priceListFileB').addEventListener('change', function(e) {
-  loadFileIntoTextarea(e.target.files[0], 'compareBoxB');
-});
-document.getElementById('priceListFileC').addEventListener('change', function(e) {
-  loadFileIntoTextarea(e.target.files[0], 'completenessBox');
-});
+// -- File input listeners (legacy match/completeness — optional) ------
+['priceListFileA','compareBoxA','priceListFileB','compareBoxB','priceListFileC','completenessBox'].reduce(function(acc, id, i, arr){
+  if (i % 2) return acc;
+  var input = document.getElementById(id);
+  var taId = arr[i+1];
+  if (input) input.addEventListener('change', function(e) {
+    loadFileIntoTextarea(e.target.files[0], taId);
+  });
+  return acc;
+}, null);
 
 // -- Catalog matching file inputs -------------------------------------
 document.getElementById('priceListFileItems').addEventListener('change', function(e) {
@@ -1009,7 +1017,7 @@ async function runCatalogMatcherForProject() {
   refreshCatalogMatcherBridge();
 })();
 
-// -- Drag-and-drop ----------------------------------------------------
+// -- Drag-and-drop (legacy match/completeness zones if present) -------
 [
   ['dropZoneA', 'compareBoxA'],
   ['dropZoneB', 'compareBoxB'],
@@ -1060,17 +1068,5 @@ async function runCatalogMatcherForProject() {
   });
 });
 
-// -- Tab switching ----------------------------------------------------
-document.querySelectorAll('.cmp-tab').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    var target = btn.dataset.cmpTab;
-    document.querySelectorAll('.cmp-tab').forEach(function(b) {
-      var active = b.dataset.cmpTab === target;
-      b.style.borderBottomColor = active ? 'var(--blue)' : 'transparent';
-      b.style.color = active ? 'var(--blue)' : 'var(--text-dim)';
-    });
-    document.getElementById('cmpTabMatch').style.display        = target === 'match'        ? '' : 'none';
-    document.getElementById('cmpTabCompleteness').style.display = target === 'completeness' ? '' : 'none';
-    document.getElementById('cmpTabCatalog').style.display      = target === 'catalog'      ? '' : 'none';
-  });
-});
+// -- Tab switching removed (only catalog matching remains) ------------
+
