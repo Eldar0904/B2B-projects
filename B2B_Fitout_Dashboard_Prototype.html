@@ -257,13 +257,23 @@
   .supplier-doc-row:hover{background:#f9fafb;}
   .supplier-doc-row.selected{background:#eff6ff;}
   .supplier-doc-row.disabled{opacity:.55;cursor:not-allowed;}
-  .tag-select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;}
-  .tag-select-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .tag-select{border:1px solid var(--border);border-radius:10px;padding:12px;background:#fafbfc;}
+  .tag-select-chips{display:flex;flex-wrap:wrap;gap:6px;min-height:28px;align-items:center;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);}
   .tag-select-empty{color:var(--text-faint);font-size:12px;padding:2px 0;}
   .tag-chip{display:inline-flex;align-items:center;gap:5px;background:#eef2ff;color:var(--accent);font-size:12px;font-weight:600;padding:5px 6px 5px 10px;border-radius:20px;}
   .tag-chip button{background:none;border:none;color:var(--accent);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;}
-  .tag-select-add{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
-  .tag-select-add select,.tag-select-add input{flex:1 1 120px;width:auto;padding:7px 9px;border:1px solid var(--border);border-radius:7px;font-size:12.5px;font-family:inherit;}
+  .tag-select-row{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
+  .tag-select-row:first-of-type{margin-top:0;}
+  .tag-select-row-label{font-size:11.5px;font-weight:600;color:var(--text-dim);}
+  .tag-select-row-controls{display:flex;gap:8px;align-items:stretch;}
+  .tag-select-row-controls select,
+  .tag-select-row-controls input{
+    flex:1;min-width:0;width:auto;padding:9px 11px;border:1px solid var(--border);border-radius:8px;
+    font-size:13px;font-family:inherit;background:#fff;
+  }
+  .tag-select-row-controls .btn{
+    flex:0 0 auto;white-space:nowrap;padding:9px 14px;font-size:12.5px;align-self:stretch;
+  }
   .stage-stepper{display:flex;gap:4px;}
   .stage-stepper .seg{flex:1;height:5px;border-radius:3px;background:#eef0f3;}
   .stage-stepper .seg.done{background:var(--accent);}
@@ -529,7 +539,6 @@
           </div>
           <div style="display:flex;gap:8px;">
             <button class="btn btn-ghost" id="detailEditBtn">✎ Редактировать</button>
-            <button class="btn btn-ghost" id="detailDocsBtn">Документы</button>
             <button class="btn btn-primary" id="detailAddTaskBtn">+ Добавить задачу</button>
           </div>
         </div>
@@ -941,10 +950,21 @@
       <label>Руководитель(и) проекта</label>
       <div class="tag-select">
         <div class="tag-select-chips" id="projManagerChips"></div>
-        <div class="tag-select-add">
-          <select id="projManagerAddSelect"></select>
-          <input id="projManagerNewInput" placeholder="или впишите новое имя">
-          <button type="button" class="btn btn-ghost btn-sm" id="projManagerAddBtn">+ Добавить</button>
+
+        <div class="tag-select-row">
+          <div class="tag-select-row-label">Выбрать из команды</div>
+          <div class="tag-select-row-controls">
+            <select id="projManagerAddSelect"></select>
+            <button type="button" class="btn btn-ghost btn-sm" id="projManagerAddFromTeamBtn">Добавить</button>
+          </div>
+        </div>
+
+        <div class="tag-select-row">
+          <div class="tag-select-row-label">Или ввести имя вручную</div>
+          <div class="tag-select-row-controls">
+            <input id="projManagerNewInput" placeholder="например, А. Беков" autocomplete="off">
+            <button type="button" class="btn btn-primary btn-sm" id="projManagerAddBtn">Добавить</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1610,7 +1630,6 @@ function openProject(id){
   switchTab('tasks');
   showView('detail');
 }
-document.getElementById('detailDocsBtn').addEventListener('click', ()=>switchTab('documents'));
 document.getElementById('detailAddTaskBtn').addEventListener('click', ()=>openTaskModal());
 
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>switchTab(t.dataset.tab)));
@@ -2248,14 +2267,14 @@ function getProjectManagers(p){
 let editingProjectManagers = [];
 const projManagerAddSelect = document.getElementById('projManagerAddSelect');
 function refreshManagerAddOptions(){
-  projManagerAddSelect.innerHTML = '<option value="">+ из команды…</option>' +
+  projManagerAddSelect.innerHTML = '<option value="">— выберите участника —</option>' +
     Object.keys(TEAM).filter(n=>!editingProjectManagers.includes(n)).map(n=>`<option value="${n}">${n} — ${TEAM[n]}</option>`).join('');
 }
 function renderManagerChips(){
   const wrap = document.getElementById('projManagerChips');
   wrap.innerHTML = editingProjectManagers.length
     ? editingProjectManagers.map(n=>`<span class="tag-chip">${n}<button type="button" data-remove-manager="${n}" aria-label="Удалить">×</button></span>`).join('')
-    : `<div class="tag-select-empty">Руководитель не указан — добавьте ниже.</div>`;
+    : `<div class="tag-select-empty">Пока никого нет — добавьте из команды или введите имя ниже.</div>`;
   refreshManagerAddOptions();
 }
 function addProjectManager(name){
@@ -2270,13 +2289,17 @@ document.getElementById('projManagerChips').addEventListener('click', e=>{
   editingProjectManagers = editingProjectManagers.filter(n=>n!==btn.dataset.removeManager);
   renderManagerChips();
 });
-projManagerAddSelect.addEventListener('change', ()=>{
-  if(projManagerAddSelect.value){ addProjectManager(projManagerAddSelect.value); projManagerAddSelect.value=''; }
+document.getElementById('projManagerAddFromTeamBtn').addEventListener('click', ()=>{
+  if(!projManagerAddSelect.value){ showToast('Выберите участника из списка.'); return; }
+  addProjectManager(projManagerAddSelect.value);
+  projManagerAddSelect.value = '';
 });
 document.getElementById('projManagerAddBtn').addEventListener('click', ()=>{
   const input = document.getElementById('projManagerNewInput');
+  if(!input.value.trim()){ showToast('Введите имя руководителя.'); return; }
   addProjectManager(input.value);
   input.value = '';
+  input.focus();
 });
 document.getElementById('projManagerNewInput').addEventListener('keydown', e=>{
   if(e.key==='Enter'){ e.preventDefault(); document.getElementById('projManagerAddBtn').click(); }
