@@ -423,16 +423,6 @@
         }catch(e){}
       })();
     </script>
-    <div class="sidebar-foot">
-      <div class="user-chip">
-        <div class="avatar" id="currentUserAvatar">--</div>
-        <div class="user-meta">
-          <div class="user-name" id="currentUserName">—</div>
-          <div class="user-role" id="currentUserEmail">—</div>
-        </div>
-        <button type="button" class="logout-btn" id="logoutBtn" title="Выйти из аккаунта">Выйти</button>
-      </div>
-    </div>
   </div>
 
   <!-- MAIN -->
@@ -1451,14 +1441,14 @@ function syncProjectStatus(projectId){
   if(allDone && current !== PROJECT_STATUS_CLOSED){
     _statusSyncPending.add(projectId);
     db.collection('projects').doc(projectId).update({ status: PROJECT_STATUS_CLOSED }).then(()=>{
-      logActivity(`проект «${p.name}» автоматически закрыт — все задачи выполнены`, p.manager || 'Система');
+      logActivity(`Проект «${p.name}» автоматически закрыт — все задачи выполнены`);
       showToast(`Проект «${p.name}» закрыт — все задачи выполнены.`);
     }).catch(err=>showToast('Ошибка авто-статуса проекта: '+err.message))
       .finally(()=>_statusSyncPending.delete(projectId));
   } else if(!allDone && current === PROJECT_STATUS_CLOSED){
     _statusSyncPending.add(projectId);
     db.collection('projects').doc(projectId).update({ status: PROJECT_STATUS_ACTIVE }).then(()=>{
-      logActivity(`проект «${p.name}» снова активен — есть открытые задачи`, p.manager || 'Система');
+      logActivity(`Проект «${p.name}» снова активен — есть открытые задачи`);
       showToast(`Проект «${p.name}» снова активен.`);
     }).catch(err=>showToast('Ошибка авто-статуса проекта: '+err.message))
       .finally(()=>_statusSyncPending.delete(projectId));
@@ -1680,7 +1670,7 @@ kanbanBoardEl.addEventListener('drop', e=>{
   const t = tasks.find(x=>x.id===taskId);
   if(!t || t.status===newStatus) return;
   db.collection('tasks').doc(taskId).update({ status:newStatus }).then(()=>{
-    logActivity(`перевёл(а) задачу «${t.title}» в статус «${newStatus}»`, t.assignee);
+    logActivity(`Задача «${t.title}» переведена в статус «${newStatus}»`);
   }).catch(err=>showToast('Ошибка обновления статуса: '+err.message));
 });
 
@@ -1895,7 +1885,7 @@ document.getElementById('docUploadSave').addEventListener('click', ()=>{
       uploadedAt: new Date().toISOString(),
     });
   }).then(()=>{
-    logActivity(`загрузил(а) документ «${file.name}»`, by);
+    logActivity(`Загружен документ «${file.name}»`);
     showToast('Документ загружен.');
     closeDocUploadModal();
   }).catch(err=>{
@@ -1939,7 +1929,7 @@ document.getElementById('docTableBody').addEventListener('click', e=>{
     if(!confirm(`Удалить «${doc.name}» из реестра?`)) return;
     const removeMeta = ()=>db.collection('documents').doc(doc.id).delete();
     deleteProjectFile(doc).then(removeMeta).then(()=>{
-      logActivity(`удалил(а) документ «${doc.name}»`, getUploaderName());
+      logActivity(`Удалён документ «${doc.name}»`);
       showToast('Документ удалён.');
     }).catch(err=>showToast('Ошибка удаления: '+err.message));
   }
@@ -2114,7 +2104,7 @@ async function uploadPhotoQaFiles(){
       setPhotoQaUploadProgress(done / toUpload.length, done < toUpload.length ? `Готово ${done}/${toUpload.length}` : 'Готово');
     }
     setPhotoQaUploadProgress(1, 'Готово');
-    logActivity(`загрузил(а) ${done} фото для фото-контроля`, by);
+    logActivity(`Загружено фото для фото-контроля: ${done}`);
     showToast(done === 1 ? 'Фото загружено.' : `Загружено фото: ${done}`);
     closePhotoQaUploadModal();
   }catch(err){
@@ -2167,7 +2157,7 @@ document.getElementById('photoQaGrid').addEventListener('click', e=>{
     if(!confirm(`Удалить «${photo.name}»?`)) return;
     const removeMeta = ()=>db.collection('photoChecks').doc(photo.id).delete();
     deleteProjectFile(photo).then(removeMeta).then(()=>{
-      logActivity(`удалил(а) фото «${photo.name}»`, getUploaderName());
+      logActivity(`Удалено фото «${photo.name}»`);
       showToast('Фото удалено.');
     }).catch(err=>showToast('Ошибка удаления: '+err.message));
   }
@@ -2220,7 +2210,7 @@ document.getElementById('taskModalSave').addEventListener('click', ()=>{
     status:'К выполнению',
   };
   db.collection('tasks').add(newTask).then(()=>{
-    logActivity(`создал(а) задачу «${title}»`, newTask.assignee);
+    logActivity(`Создана задача «${title}»`);
     document.getElementById('taskTitleInput').value='';
     closeTaskModal();
     showToast('Задача добавлена.');
@@ -2353,7 +2343,7 @@ document.getElementById('projectModalSave').addEventListener('click', ()=>{
   };
   if(editingProjectId){
     db.collection('projects').doc(editingProjectId).update(proj).then(()=>{
-      logActivity(`отредактировал(а) проект «${proj.name}»`, proj.manager);
+      logActivity(`Отредактирован проект «${proj.name}»`);
       closeProjectModal();
       showToast('Проект обновлён.');
       if(currentProjectId===editingProjectId) openProject(editingProjectId);
@@ -2363,7 +2353,7 @@ document.getElementById('projectModalSave').addEventListener('click', ()=>{
     proj.spent = 0;
     proj.status = PROJECT_STATUS_ACTIVE;
     db.collection('projects').add(proj).then(()=>{
-      logActivity(`создал(а) проект «${proj.name}»`, proj.manager);
+      logActivity(`Создан проект «${proj.name}»`);
       closeProjectModal();
       showToast('Проект добавлен.');
     }).catch(err=>showToast('Ошибка сохранения проекта: '+err.message));
@@ -2393,7 +2383,7 @@ document.getElementById('updateModalSave').addEventListener('click', ()=>{
     date: document.getElementById('updateDateInput').value || TODAY.toISOString().slice(0,10),
   };
   db.collection('changelog').add(entry).then(()=>{
-    logActivity(`добавил(а) запись в историю: «${title}»`, entry.by);
+    logActivity(`Добавлена запись в историю: «${title}»`);
     closeUpdateModal();
     showToast('Запись добавлена.');
   }).catch(err=>showToast('Ошибка сохранения записи: '+err.message));
@@ -2485,7 +2475,8 @@ function timeAgo(iso){
 /* Лёгкий журнал действий: создание задачи, смена статуса на канбане,
    создание/редактирование проекта и запись в историю изменений. */
 function logActivity(text, by){
-  db.collection('activity').add({ text, by: by||'—', at: new Date().toISOString() })
+  // by kept for presence heuristics only — not shown in the feed
+  db.collection('activity').add({ text, by: by||'', at: new Date().toISOString() })
     .catch(err=>console.error('Ошибка записи в ленту событий:', err));
 }
 function renderActivityFeed(){
@@ -2498,9 +2489,8 @@ function renderActivityFeed(){
   const sorted = [...activityLog].sort((a,b)=> new Date(b.at)-new Date(a.at)).slice(0,20);
   wrap.innerHTML = sorted.map(a=>`
     <div class="activity-row">
-      <div class="mini-avatar" style="width:26px;height:26px;font-size:10px;flex-shrink:0;">${initials(a.by||'?')}</div>
-      <div class="activity-body">
-        <div><b>${escapeHtml(a.by||'—')}</b> ${escapeHtml(a.text)}</div>
+      <div class="activity-body" style="padding-left:2px;">
+        <div>${escapeHtml(a.text)}</div>
         <div class="activity-time">${timeAgo(a.at)}</div>
       </div>
     </div>`).join('');
@@ -2554,24 +2544,15 @@ function ensureUserProfile(user){
 }
 
 function updateUserChip(){
-  const user = auth.currentUser;
-  if(!user) return;
-  const displayName = (currentUserProfile && currentUserProfile.displayName) || user.email.split('@')[0];
-  document.getElementById('currentUserName').textContent = displayName;
-  document.getElementById('currentUserEmail').textContent = user.email;
-  document.getElementById('currentUserAvatar').textContent = initials(displayName);
+  // User chip removed from sidebar (auth/registration disabled).
 }
-
 function showApp(user){
   document.getElementById('loginOverlay').style.display='none';
   document.getElementById('appRoot').style.display='flex';
-  updateUserChip();
   ensureUserProfile(user).then(profile=>{
     currentUserProfile = profile;
-    updateUserChip();
   }).catch(()=>{
     currentUserProfile = { displayName:user.email.split('@')[0], email:user.email };
-    updateUserChip();
   }).finally(()=>{
     startRealtimeListeners();
     refreshTeamDependentSelects();
@@ -2580,10 +2561,7 @@ function showApp(user){
 function showAppAsGuest(){
   document.getElementById('loginOverlay').style.display='none';
   document.getElementById('appRoot').style.display='flex';
-  currentUserProfile = { displayName:'Гость (dev)', email:'dev@local' };
-  document.getElementById('currentUserName').textContent = 'Гость (dev)';
-  document.getElementById('currentUserEmail').textContent = 'вход отключён';
-  document.getElementById('currentUserAvatar').textContent = 'DV';
+  currentUserProfile = { displayName:'Гость', email:'dev@local' };
   startRealtimeListeners();
   refreshTeamDependentSelects();
 }
@@ -2682,7 +2660,7 @@ document.getElementById('loginSubmitBtn').addEventListener('click', ()=>{
   }
   auth.signInWithEmailAndPassword(email, pass).catch(err=>{ errBox.textContent = err.message; });
 });
-document.getElementById('logoutBtn').addEventListener('click', ()=>{
+document.getElementById('logoutBtn')?.addEventListener('click', ()=>{
   auth.signOut().catch(err=>{
     const t = document.getElementById('toast');
     if(t){ t.textContent = 'Ошибка выхода: ' + err.message; t.classList.add('show'); }
