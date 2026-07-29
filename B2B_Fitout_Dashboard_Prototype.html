@@ -307,8 +307,9 @@
   .team-edit-row-name{font-size:13px;font-weight:600;}
   .team-edit-row-role{font-size:11.5px;color:var(--text-dim);}
 
-  /* LOGIN */
-  .login-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;}
+  /* LOGIN — hidden by default (auth/registration disabled). Shown only when DEV_SKIP_AUTH=false. */
+  .login-overlay{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;z-index:100;}
+  .login-overlay.show{display:flex;}
   .login-card{width:340px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:32px 28px;box-shadow:0 10px 30px rgba(16,24,40,0.08);}
   .login-brand{display:flex;align-items:center;gap:10px;margin-bottom:22px;}
   .login-title{font-size:17px;font-weight:700;margin-bottom:4px;color:var(--text);}
@@ -327,7 +328,7 @@
 </head>
 <body>
 
-<div class="login-overlay" id="loginOverlay">
+<div class="login-overlay" id="loginOverlay" style="display:none;" aria-hidden="true">
   <div class="login-card">
     <div class="login-brand">
       <div class="brand-mark">PN</div>
@@ -360,7 +361,7 @@
   </div>
 </div>
 
-<div class="app" id="appRoot" style="display:none;">
+<div class="app" id="appRoot">
   <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-brand">
@@ -2547,6 +2548,7 @@ function updateUserChip(){
   // User chip removed from sidebar (auth/registration disabled).
 }
 function showApp(user){
+  document.getElementById('loginOverlay').classList.remove('show');
   document.getElementById('loginOverlay').style.display='none';
   document.getElementById('appRoot').style.display='flex';
   ensureUserProfile(user).then(profile=>{
@@ -2559,6 +2561,7 @@ function showApp(user){
   });
 }
 function showAppAsGuest(){
+  document.getElementById('loginOverlay').classList.remove('show');
   document.getElementById('loginOverlay').style.display='none';
   document.getElementById('appRoot').style.display='flex';
   currentUserProfile = { displayName:'Гость', email:'dev@local' };
@@ -2568,7 +2571,9 @@ function showAppAsGuest(){
 function showLogin(){
   if(DEV_SKIP_AUTH){ showAppAsGuest(); return; }
   document.getElementById('appRoot').style.display='none';
-  document.getElementById('loginOverlay').style.display='flex';
+  const overlay = document.getElementById('loginOverlay');
+  overlay.style.display='flex';
+  overlay.classList.add('show');
   document.getElementById('loginEmailInput').value='';
   document.getElementById('loginDisplayNameInput').value='';
   document.getElementById('loginPasswordInput').value='';
