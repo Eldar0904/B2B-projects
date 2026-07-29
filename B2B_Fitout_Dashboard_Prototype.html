@@ -1344,7 +1344,10 @@ let supplierRunsCount = 0;
 /* ===================== NAV ===================== */
 const views = ['dashboard','projects','detail','suppliers','compare','photoqa','modules','updates'];
 function showView(name){
-  views.forEach(v=>document.getElementById('view-'+v).classList.toggle('active', v===name));
+  views.forEach(v=>{
+    const el = document.getElementById('view-'+v);
+    if(el) el.classList.toggle('active', v===name);
+  });
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===name));
   const titles = {
     dashboard:['Дэшборд','Обзор всех активных проектов по оснащению'],
@@ -1356,12 +1359,17 @@ function showView(name){
     modules:['Модули','Управляйте активными модулями и добавляйте новые возможности'],
     updates:['Обновления','История решений и изменений — добавляйте записи сами или они появляются автоматически'],
   };
-  document.getElementById('pageTitle').textContent = titles[name][0];
-  document.getElementById('pageSub').textContent = titles[name][1];
-  document.getElementById('shortlistBar').classList.toggle('show', name==='suppliers' && shortlist.length>0);
+  const title = titles[name] || titles.dashboard;
+  document.getElementById('pageTitle').textContent = title[0];
+  document.getElementById('pageSub').textContent = title[1];
+  const bar = document.getElementById('shortlistBar');
+  if(bar){
+    const hasShortlist = typeof shortlist !== 'undefined' && Array.isArray(shortlist) && shortlist.length > 0;
+    bar.classList.toggle('show', name==='suppliers' && hasShortlist);
+  }
   if(name === 'photoqa'){
-    refreshPhotoQaModuleSelect();
-    syncPhotoQaWorkspace();
+    if(typeof refreshPhotoQaModuleSelect === 'function') refreshPhotoQaModuleSelect();
+    if(typeof syncPhotoQaWorkspace === 'function') syncPhotoQaWorkspace();
   }
 }
 document.querySelectorAll('.nav-item[data-view]').forEach(el=>{
@@ -1489,9 +1497,13 @@ function taskProgress(projectId){
   return Math.round(done/pTasks.length*100);
 }
 function projectProgress(p){
+  if(!p) return 0;
   const computed = taskProgress(p.id);
   return computed===null ? (p.progress||0) : computed;
 }
+/** Safe money fields — Firestore projects may omit budget/spent. */
+function projectBudget(p){ return Number(p && p.budget) || 0; }
+function projectSpent(p){ return Number(p && p.spent) || 0; }
 
 /* ===================== PROJECT STATUS (auto from tasks) ===================== */
 const PROJECT_STATUS_ACTIVE = 'Активный';
@@ -1548,8 +1560,8 @@ function renderKPIs(){
     const diff = (new Date(t.due+'T00:00:00') - TODAY)/86400000;
     return diff>=0 && diff<=7;
   }).length;
-  const totalBudget = active.reduce((s,p)=>s+p.budget,0);
-  const totalSpent = active.reduce((s,p)=>s+p.spent,0);
+  const totalBudget = active.reduce((s,p)=>s+projectBudget(p),0);
+  const totalSpent = active.reduce((s,p)=>s+projectSpent(p),0);
   const util = totalBudget ? Math.round(totalSpent/totalBudget*100) : 0;
 
   document.getElementById('kpiProjects').textContent = active.length;
@@ -1632,7 +1644,7 @@ function renderProjectCards(){
       <div class="proj-card-stats">
         <div><b>${pct}%</b>завершено</div>
         <div><b>${doneTasks}/${totalTasks}</b>задач готово</div>
-        <div><b>₸${(p.budget/1e6).toFixed(1)}млн.</b>бюджет</div>
+        <div><b>₸${(projectBudget(p)/1e6).toFixed(1)}млн.</b>бюджет</div>
         <div><b>${fmtDate(p.end)}</b>срок</div>
       </div>
       <div class="role-list">${roleBreakdownHTML(p.id)}</div>
@@ -1644,13 +1656,16 @@ function renderProjectCards(){
 /* ===================== PROJECT DETAIL ===================== */
 function renderDetailStats(id){
   const p = projects.find(x=>x.id===id);
+  if(!p) return;
+  const budget = projectBudget(p);
+  const spent = projectSpent(p);
   const pTasks = tasks.filter(t=>t.projectId===id);
   const pDocs = documents.filter(d=>d.projectId===id);
   document.getElementById('detailStats').innerHTML = `
     <div class="stat-box"><div class="v">${projectProgress(p)}%</div><div class="l">Прогресс</div></div>
     <div class="stat-box"><div class="v">${pTasks.length}</div><div class="l">Всего задач</div></div>
     <div class="stat-box"><div class="v">${pDocs.length}</div><div class="l">Документов в деле</div></div>
-    <div class="stat-box"><div class="v">₸${(p.budget-p.spent).toLocaleString('ru-RU')}</div><div class="l">Остаток бюджета</div></div>
+    <div class="stat-box"><div class="v">₸${(budget-spent).toLocaleString('ru-RU')}</div><div class="l">Остаток бюджета</div></div>
     ${p.area?`<div class="stat-box"><div class="v">${Number(p.area).toLocaleString('ru-RU')} м²</div><div class="l">Площадь здания</div></div>`:''}
     ${p.rooms?`<div class="stat-box"><div class="v">${p.rooms}${p.floors?` / ${p.floors} эт.`:''}</div><div class="l">Помещений</div></div>`:''}
   `;
@@ -1658,8 +1673,14 @@ function renderDetailStats(id){
 function openProject(id){
   currentProjectId = id;
   const p = projects.find(x=>x.id===id);
+  if(!p){
+    showToast('Проект не найден или ещё загружается.');
+    return;
+  }
+  const budget = projectBudget(p);
+  const spent = projectSpent(p);
   document.getElementById('detailName').textContent = `${TYPE_ICON[p.type]||DEFAULT_TYPE_ICON} ${p.name}`;
-  const curStage = STAGES.find(s=>s.id===getProjectStage(p));
+  const curStage = STAGES.find(s=>s.id===getProjectStage(p)) || STAGES[0];
   document.getElementById('detailSub').innerHTML = `<span>${projectStatusBadge(p)}</span><span>${p.type||'Project'} · ${p.location||'—'}</span><span>Client: ${p.client||'—'}</span><span>Manager: ${getProjectManagers(p).join(', ')||'—'}</span><span>${fmtDate(p.start)} → ${fmtDate(p.end)}</span><span>${curStage.short} · ${curStage.label}</span>`;
 
   renderDetailStats(id);
@@ -1674,12 +1695,12 @@ function openProject(id){
     Руководитель(и) проекта: <b style="color:var(--text)">${getProjectManagers(p).join(', ')||'—'}</b><br>
     Сроки: <b style="color:var(--text)">${fmtDate(p.start)} – ${fmtDate(p.end)}</b><br>
     Статус: ${projectStatusBadge(p)}<br>
-    Бюджет: <b style="color:var(--text)">₸${p.budget.toLocaleString('ru-RU')}</b>${p.note?`<br><span style="font-size:12px;color:var(--text-dim);">${p.note}</span>`:''}
+    Бюджет: <b style="color:var(--text)">₸${budget.toLocaleString('ru-RU')}</b>${p.note?`<br><span style="font-size:12px;color:var(--text-dim);">${escapeHtml(p.note)}</span>`:''}
     <div style="margin-top:10px;">Этап проекта (П1–П6):${stageStepperHTML(p)}</div>
   `;
-  const pct = p.budget ? Math.round(p.spent/p.budget*100) : 0;
+  const pct = budget ? Math.round(spent/budget*100) : 0;
   document.getElementById('budgetFill').style.width = pct+'%';
-  document.getElementById('budgetText').textContent = `₸${p.spent.toLocaleString('ru-RU')} освоено из ₸${p.budget.toLocaleString('ru-RU')} (${pct}%)`;
+  document.getElementById('budgetText').textContent = `₸${spent.toLocaleString('ru-RU')} освоено из ₸${budget.toLocaleString('ru-RU')} (${pct}%)`;
 
   switchTab('tasks');
   showView('detail');
