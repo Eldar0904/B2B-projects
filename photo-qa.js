@@ -449,7 +449,7 @@ async function handlePhotoQaCheck(){
       photoNames: photos.map(p=>p.name).join(', '),
     });
     logActivity(
-      `Проверено ${photos.length} фото (${summary.found} найдено / ${summary.missing} нет / ${summary.unclear} неясно)`
+      `Было проверено ${photos.length} фото (${summary.found} найдено / ${summary.missing} нет / ${summary.unclear} неясно)`
     );
     showToast(`Готово: найдено ${summary.found}, нет ${summary.missing}, неясно ${summary.unclear}`);
     setTimeout(clearPhotoQaProgress, 1200);

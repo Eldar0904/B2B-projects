@@ -1442,14 +1442,14 @@ function syncProjectStatus(projectId){
   if(allDone && current !== PROJECT_STATUS_CLOSED){
     _statusSyncPending.add(projectId);
     db.collection('projects').doc(projectId).update({ status: PROJECT_STATUS_CLOSED }).then(()=>{
-      logActivity(`Проект «${p.name}» автоматически закрыт — все задачи выполнены`);
+      logActivity(`Проект «${p.name}» был автоматически закрыт — все задачи выполнены`);
       showToast(`Проект «${p.name}» закрыт — все задачи выполнены.`);
     }).catch(err=>showToast('Ошибка авто-статуса проекта: '+err.message))
       .finally(()=>_statusSyncPending.delete(projectId));
   } else if(!allDone && current === PROJECT_STATUS_CLOSED){
     _statusSyncPending.add(projectId);
     db.collection('projects').doc(projectId).update({ status: PROJECT_STATUS_ACTIVE }).then(()=>{
-      logActivity(`Проект «${p.name}» снова активен — есть открытые задачи`);
+      logActivity(`Проект «${p.name}» снова активирован — есть открытые задачи`);
       showToast(`Проект «${p.name}» снова активен.`);
     }).catch(err=>showToast('Ошибка авто-статуса проекта: '+err.message))
       .finally(()=>_statusSyncPending.delete(projectId));
@@ -1671,7 +1671,7 @@ kanbanBoardEl.addEventListener('drop', e=>{
   const t = tasks.find(x=>x.id===taskId);
   if(!t || t.status===newStatus) return;
   db.collection('tasks').doc(taskId).update({ status:newStatus }).then(()=>{
-    logActivity(`Задача «${t.title}» переведена в статус «${newStatus}»`);
+    logActivity(`Задача «${t.title}» была переведена в статус «${newStatus}»`);
   }).catch(err=>showToast('Ошибка обновления статуса: '+err.message));
 });
 
@@ -1886,7 +1886,7 @@ document.getElementById('docUploadSave').addEventListener('click', ()=>{
       uploadedAt: new Date().toISOString(),
     });
   }).then(()=>{
-    logActivity(`Загружен документ «${file.name}»`);
+    logActivity(`Был загружен документ «${file.name}»`);
     showToast('Документ загружен.');
     closeDocUploadModal();
   }).catch(err=>{
@@ -1930,7 +1930,7 @@ document.getElementById('docTableBody').addEventListener('click', e=>{
     if(!confirm(`Удалить «${doc.name}» из реестра?`)) return;
     const removeMeta = ()=>db.collection('documents').doc(doc.id).delete();
     deleteProjectFile(doc).then(removeMeta).then(()=>{
-      logActivity(`Удалён документ «${doc.name}»`);
+      logActivity(`Был удалён документ «${doc.name}»`);
       showToast('Документ удалён.');
     }).catch(err=>showToast('Ошибка удаления: '+err.message));
   }
@@ -2105,7 +2105,7 @@ async function uploadPhotoQaFiles(){
       setPhotoQaUploadProgress(done / toUpload.length, done < toUpload.length ? `Готово ${done}/${toUpload.length}` : 'Готово');
     }
     setPhotoQaUploadProgress(1, 'Готово');
-    logActivity(`Загружено фото для фото-контроля: ${done}`);
+    logActivity(`Было загружено фото для фото-контроля: ${done}`);
     showToast(done === 1 ? 'Фото загружено.' : `Загружено фото: ${done}`);
     closePhotoQaUploadModal();
   }catch(err){
@@ -2158,7 +2158,7 @@ document.getElementById('photoQaGrid').addEventListener('click', e=>{
     if(!confirm(`Удалить «${photo.name}»?`)) return;
     const removeMeta = ()=>db.collection('photoChecks').doc(photo.id).delete();
     deleteProjectFile(photo).then(removeMeta).then(()=>{
-      logActivity(`Удалено фото «${photo.name}»`);
+      logActivity(`Было удалено фото «${photo.name}»`);
       showToast('Фото удалено.');
     }).catch(err=>showToast('Ошибка удаления: '+err.message));
   }
@@ -2211,7 +2211,7 @@ document.getElementById('taskModalSave').addEventListener('click', ()=>{
     status:'К выполнению',
   };
   db.collection('tasks').add(newTask).then(()=>{
-    logActivity(`Создана задача «${title}»`);
+    logActivity(`Была создана задача «${title}»`);
     document.getElementById('taskTitleInput').value='';
     closeTaskModal();
     showToast('Задача добавлена.');
@@ -2344,7 +2344,7 @@ document.getElementById('projectModalSave').addEventListener('click', ()=>{
   };
   if(editingProjectId){
     db.collection('projects').doc(editingProjectId).update(proj).then(()=>{
-      logActivity(`Отредактирован проект «${proj.name}»`);
+      logActivity(`Был отредактирован проект «${proj.name}»`);
       closeProjectModal();
       showToast('Проект обновлён.');
       if(currentProjectId===editingProjectId) openProject(editingProjectId);
@@ -2354,7 +2354,7 @@ document.getElementById('projectModalSave').addEventListener('click', ()=>{
     proj.spent = 0;
     proj.status = PROJECT_STATUS_ACTIVE;
     db.collection('projects').add(proj).then(()=>{
-      logActivity(`Создан проект «${proj.name}»`);
+      logActivity(`Был создан проект «${proj.name}»`);
       closeProjectModal();
       showToast('Проект добавлен.');
     }).catch(err=>showToast('Ошибка сохранения проекта: '+err.message));
@@ -2384,7 +2384,7 @@ document.getElementById('updateModalSave').addEventListener('click', ()=>{
     date: document.getElementById('updateDateInput').value || TODAY.toISOString().slice(0,10),
   };
   db.collection('changelog').add(entry).then(()=>{
-    logActivity(`Добавлена запись в историю: «${title}»`);
+    logActivity(`Была добавлена запись в историю: «${title}»`);
     closeUpdateModal();
     showToast('Запись добавлена.');
   }).catch(err=>showToast('Ошибка сохранения записи: '+err.message));
@@ -2480,6 +2480,34 @@ function logActivity(text, by){
   db.collection('activity').add({ text, by: by||'', at: new Date().toISOString() })
     .catch(err=>console.error('Ошибка записи в ленту событий:', err));
 }
+/** Rewrite old personal verbs (загрузил(а)…) for display in the feed. */
+function normalizeActivityText(raw){
+  let t = String(raw || '').trim();
+  const rules = [
+    [/^проверил\(а\)\s+/i, 'Было проверено: '],
+    [/^загрузил\(а\)\s+/i, 'Было загружено: '],
+    [/^удалил\(а\)\s+/i, 'Было удалено: '],
+    [/^создал\(а\)\s+/i, 'Было создано: '],
+    [/^отредактировал\(а\)\s+/i, 'Было отредактировано: '],
+    [/^добавил\(а\)\s+/i, 'Было добавлено: '],
+    [/^перевёл\(а\)\s+/i, 'Было переведено: '],
+    [/^сформировал\(а\)\s+/i, 'Было сформировано: '],
+    [/^Загружен\s+/i, 'Был загружен '],
+    [/^Удалён\s+/i, 'Был удалён '],
+    [/^Удалено\s+/i, 'Было удалено '],
+    [/^Загружено\s+/i, 'Было загружено '],
+    [/^Создана\s+/i, 'Была создана '],
+    [/^Создан\s+/i, 'Был создан '],
+    [/^Отредактирован\s+/i, 'Был отредактирован '],
+    [/^Добавлена\s+/i, 'Была добавлена '],
+    [/^Сформирован\s+/i, 'Был сформирован '],
+    [/^Проверено\s+/i, 'Было проверено '],
+  ];
+  for(const [re, rep] of rules){
+    if(re.test(t)){ t = t.replace(re, rep); break; }
+  }
+  return t;
+}
 function renderActivityFeed(){
   const wrap = document.getElementById('activityFeedWrap');
   if(!wrap) return;
@@ -2491,7 +2519,7 @@ function renderActivityFeed(){
   wrap.innerHTML = sorted.map(a=>`
     <div class="activity-row">
       <div class="activity-body" style="padding-left:2px;">
-        <div>${escapeHtml(a.text)}</div>
+        <div>${escapeHtml(normalizeActivityText(a.text))}</div>
         <div class="activity-time">${timeAgo(a.at)}</div>
       </div>
     </div>`).join('');

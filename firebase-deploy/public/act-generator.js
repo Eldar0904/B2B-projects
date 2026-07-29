@@ -414,7 +414,7 @@ document.getElementById('actModalGenerate').addEventListener('click', ()=>{
       : saveDoc({ size: `${Math.max(1, Math.round(blob.size/1024))} КБ` });
 
     persist.then(()=>{
-      logActivity(`Сформирован «${cfg.label}» № ${ctx.number || 'б/н'}`);
+      logActivity(`Был сформирован «${cfg.label}» № ${ctx.number || 'б/н'}`);
     }).catch(err=>console.error('Ошибка записи акта в реестр документов:', err));
 
     showToast('Акт сформирован и скачан. Не забудьте заполнить реквизиты компании перед отправкой.');
