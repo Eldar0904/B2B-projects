@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.db
+*.db-journal
+.pytest_cache/
+.env
+uploads_tmp/
+backend/.index_cache/
+backend/calibration_data/
+node_modules/

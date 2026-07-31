@@ -885,15 +885,23 @@ document.getElementById('runCatalogMatchBtn').addEventListener('click', function
   renderCatalogMatch();
 });
 
-// -- Catalog Matcher API bridge (project-scoped growing DB) ------------
+// -- Catalog Matcher bridge (GoodsProgram Docker: API :8000, UI :3000) --
 var _cmProjects = [];
-var _cmSources = [];
 
 function catalogMatcherBase() {
   var el = document.getElementById('catalogMatcherApiBase');
-  var base = (el && el.value ? el.value : 'http://localhost:8000/api').replace(/\/$/, '');
+  var base = (el && el.value ? el.value : 'http://localhost:8000').replace(/\/$/, '');
+  // Accept either "http://localhost:8000" or ".../api"
+  if (base.endsWith('/api')) base = base.slice(0, -4);
   try { localStorage.setItem('catalogMatcher.apiBase', base); } catch (e) {}
   return base;
+}
+
+function catalogMatcherUiBase() {
+  var el = document.getElementById('catalogMatcherUiBase');
+  var ui = (el && el.value ? el.value : 'http://localhost:3000').replace(/\/$/, '');
+  try { localStorage.setItem('catalogMatcher.uiBase', ui); } catch (e) {}
+  return ui;
 }
 
 function setCatalogMatcherStatus(text, isError) {
@@ -903,99 +911,62 @@ function setCatalogMatcherStatus(text, isError) {
   el.style.color = isError ? 'var(--red)' : 'var(--text-dim)';
 }
 
-function renderCatalogMatcherSourcesForProject(projectId) {
-  var box = document.getElementById('catalogMatcherSourceList');
-  if (!box) return;
-  var project = _cmProjects.find(function(p) { return String(p.id) === String(projectId); });
-  if (!project) {
-    box.innerHTML = '<span style="color:var(--text-dim)">Нет выбранного проекта</span>';
-    return;
+function setCatalogMatcherEmbedOnline(online) {
+  var frame = document.getElementById('catalogMatcherFrame');
+  var hint = document.getElementById('catalogMatcherEmbedHint');
+  if (frame) frame.style.display = online ? 'block' : 'none';
+  if (hint) hint.style.display = online ? 'none' : 'block';
+}
+
+function syncCatalogMatcherFrame() {
+  var ui = catalogMatcherUiBase();
+  var frame = document.getElementById('catalogMatcherFrame');
+  var link = document.getElementById('openCatalogMatcherUi');
+  if (link) link.href = ui;
+  if (frame) {
+    var next = ui + (ui.indexOf('?') >= 0 ? '&' : '?') + '_ts=' + Date.now();
+    // Only reload if origin/path changed or forced refresh — avoid wipe on every status poll
+    var current = frame.getAttribute('data-ui-base') || '';
+    if (current !== ui) {
+      frame.setAttribute('data-ui-base', ui);
+      frame.src = ui;
+    } else {
+      frame.src = next;
+    }
   }
-  var links = (project.catalog_links || []).filter(function(l) { return l.include_in_matching; });
-  if (!links.length) {
-    box.innerHTML = '<span style="color:var(--text-dim)">Нет включённых каталогов — настройте в Catalog Matcher → Проекты</span>';
-    return;
-  }
-  box.innerHTML = links.map(function(l) {
-    return '<span style="display:inline-block;margin:0 6px 6px 0;padding:3px 8px;border-radius:6px;background:#e2e8f0;font-weight:600;">'
-      + (l.source_name || ('#' + l.source_id)) + '</span>';
-  }).join('');
 }
 
 async function refreshCatalogMatcherBridge() {
   var base = catalogMatcherBase();
-  var uiLink = document.getElementById('openCatalogMatcherUi');
-  if (uiLink) {
-    try {
-      var u = new URL(base);
-      uiLink.href = u.origin.replace(':8000', ':5173');
-    } catch (e) {
-      uiLink.href = 'http://localhost:5173';
-    }
-  }
-  setCatalogMatcherStatus('Загрузка проектов…');
+  var ui = catalogMatcherUiBase();
+  var link = document.getElementById('openCatalogMatcherUi');
+  if (link) link.href = ui;
+
+  setCatalogMatcherStatus('Проверка API…');
   try {
-    var [projRes, srcRes] = await Promise.all([
-      fetch(base + '/projects'),
-      fetch(base + '/catalog-sources'),
-    ]);
+    var healthRes = await fetch(base + '/health');
+    if (!healthRes.ok) throw new Error('health HTTP ' + healthRes.status);
+
+    var projRes = await fetch(base + '/api/projects');
     if (!projRes.ok) throw new Error('projects HTTP ' + projRes.status);
-    if (!srcRes.ok) throw new Error('sources HTTP ' + srcRes.status);
     _cmProjects = await projRes.json();
-    _cmSources = await srcRes.json();
-    var sel = document.getElementById('catalogMatcherProjectSelect');
-    if (sel) {
-      var prev = sel.value;
-      sel.innerHTML = '<option value="">— выберите проект —</option>' +
-        _cmProjects.map(function(p) {
-          return '<option value="' + p.id + '">' + p.name + '</option>';
-        }).join('');
-      if (prev) sel.value = prev;
-      renderCatalogMatcherSourcesForProject(sel.value);
-    }
+
+    var withMaster = _cmProjects.filter(function(p) { return !!p.master_upload_id; }).length;
     setCatalogMatcherStatus(
-      'API OK · проектов: ' + _cmProjects.length +
-      ' · каталогов: ' + _cmSources.length +
-      ' (enabled: ' + _cmSources.filter(function(s) { return s.is_enabled; }).length + ')'
+      'API OK · UI ' + ui +
+      ' · проектов: ' + _cmProjects.length +
+      ' · с каталогом: ' + withMaster +
+      ' · Docs: ' + base + '/docs'
     );
+    setCatalogMatcherEmbedOnline(true);
+    syncCatalogMatcherFrame();
   } catch (err) {
     setCatalogMatcherStatus(
-      'API недоступен (' + (err && err.message ? err.message : err) + '). Запустите catalog-matcher backend на :8000.',
+      'Catalog Matcher недоступен (' + (err && err.message ? err.message : err) +
+      '). Запустите start-catalog-matcher.bat (Docker: API :8000, UI :3000).',
       true
     );
-  }
-}
-
-async function runCatalogMatcherForProject() {
-  var sel = document.getElementById('catalogMatcherProjectSelect');
-  var projectId = sel && sel.value ? Number(sel.value) : null;
-  if (!projectId) {
-    showToast('Выберите проект');
-    return;
-  }
-  var base = catalogMatcherBase();
-  setCatalogMatcherStatus('Запуск подбора для проекта #' + projectId + '…');
-  try {
-    var res = await fetch(base + '/match/run', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        project_id: projectId,
-        matching_mode: 'balanced',
-        embed_catalog_if_missing: false,
-      }),
-    });
-    var body = await res.json().catch(function() { return {}; });
-    if (!res.ok) throw new Error(body.detail || ('HTTP ' + res.status));
-    setCatalogMatcherStatus(
-      'Подбор запущен · run #' + body.run_id +
-      ' · источники: ' + ((body.source_names || []).join(', ') || '—') +
-      '. Откройте UI для ревью.'
-    );
-    showToast('Подбор по проекту запущен (run #' + body.run_id + ')');
-  } catch (err) {
-    setCatalogMatcherStatus(String(err.message || err), true);
-    showToast(String(err.message || err));
+    setCatalogMatcherEmbedOnline(false);
   }
 }
 
@@ -1004,15 +975,21 @@ async function runCatalogMatcherForProject() {
   if (!baseInput) return;
   try {
     var saved = localStorage.getItem('catalogMatcher.apiBase');
-    if (saved) baseInput.value = saved;
+    if (saved) baseInput.value = saved.endsWith('/api') ? saved.slice(0, -4) : saved;
+    var savedUi = localStorage.getItem('catalogMatcher.uiBase');
+    var uiInput = document.getElementById('catalogMatcherUiBase');
+    if (savedUi && uiInput) uiInput.value = savedUi;
   } catch (e) {}
   var refreshBtn = document.getElementById('catalogMatcherRefreshBtn');
-  var runBtn = document.getElementById('catalogMatcherRunProjectBtn');
-  var sel = document.getElementById('catalogMatcherProjectSelect');
   if (refreshBtn) refreshBtn.addEventListener('click', refreshCatalogMatcherBridge);
-  if (runBtn) runBtn.addEventListener('click', runCatalogMatcherForProject);
-  if (sel) sel.addEventListener('change', function() {
-    renderCatalogMatcherSourcesForProject(sel.value);
+  var uiInput = document.getElementById('catalogMatcherUiBase');
+  if (uiInput) uiInput.addEventListener('change', function() {
+    catalogMatcherUiBase();
+    syncCatalogMatcherFrame();
+  });
+  if (baseInput) baseInput.addEventListener('change', function() {
+    catalogMatcherBase();
+    refreshCatalogMatcherBridge();
   });
   refreshCatalogMatcherBridge();
 })();

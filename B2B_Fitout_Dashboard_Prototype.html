@@ -644,98 +644,102 @@
         <div id="resultsWrap"></div>
       </div>
 
-      <!-- ===================== CATALOG MATCHING ===================== -->
+      <!-- ===================== CATALOG MATCHING (GoodsProgram / Docker) ===================== -->
       <div class="view" id="view-compare">
         <div id="cmpTabCatalog">
-          <div id="catalogMatcherApiBridge" style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:18px;background:#f8fafc;">
+          <div id="catalogMatcherApiBridge" style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px;background:#f8fafc;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
               <div>
-                <div style="font-size:13px;font-weight:700;">Catalog Matcher API (проектный режим)</div>
+                <div style="font-size:13px;font-weight:700;">Подбор по каталогу — Catalog Matcher</div>
                 <div style="font-size:12px;color:var(--text-dim);margin-top:3px;">
-                  Живая база каталогов (гос. смета + поставщики) с upsert и skip. Локальный подбор ниже — fallback без сервера.
+                  Docker-приложение из <code>catalog-matcher/</code> (API :8000, UI :3000). Запуск: <code>start-catalog-matcher.bat</code>
                 </div>
               </div>
-              <a id="openCatalogMatcherUi" href="http://localhost:5173" target="_blank" rel="noopener"
-                style="font-size:12px;font-weight:600;color:var(--accent);white-space:nowrap;">Открыть UI →</a>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;">
-              <input id="catalogMatcherApiBase" type="text" value="http://localhost:8000/api"
-                style="flex:1;min-width:220px;font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;"
-                placeholder="http://localhost:8000/api" />
-              <button type="button" class="btn btn-ghost" id="catalogMatcherRefreshBtn" style="font-size:12px;">Обновить</button>
-              <button type="button" class="btn btn-primary" id="catalogMatcherRunProjectBtn" style="font-size:12px;">Подбор по проекту</button>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-              <label style="font-size:12px;color:var(--text-dim);display:flex;flex-direction:column;gap:4px;">
-                Проект
-                <select id="catalogMatcherProjectSelect" style="font-size:12.5px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;">
-                  <option value="">— выберите проект —</option>
-                </select>
-              </label>
-              <div>
-                <div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">Каталоги проекта (вкл. в подбор)</div>
-                <div id="catalogMatcherSourceList" style="font-size:12.5px;min-height:38px;color:var(--text);"></div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <a id="openCatalogMatcherUi" href="http://localhost:3000" target="_blank" rel="noopener"
+                  style="font-size:12px;font-weight:600;color:var(--accent);white-space:nowrap;">Открыть в новой вкладке →</a>
+                <button type="button" class="btn btn-ghost" id="catalogMatcherRefreshBtn" style="font-size:12px;">Обновить</button>
               </div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+              <input id="catalogMatcherApiBase" type="text" value="http://localhost:8000"
+                style="flex:1;min-width:200px;font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;"
+                placeholder="http://localhost:8000" title="Корень backend (без /api)" />
+              <input id="catalogMatcherUiBase" type="text" value="http://localhost:3000"
+                style="flex:1;min-width:180px;font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;"
+                placeholder="http://localhost:3000" title="URL UI для iframe" />
             </div>
             <div id="catalogMatcherApiStatus" style="font-size:12px;color:var(--text-dim);margin-top:10px;"></div>
           </div>
 
-          <p style="font-size:12.5px;color:var(--text-dim);margin-bottom:16px;">
-            Локальный режим (без API): загрузите перечень и каталог — до 3 вариантов на позицию в браузере.
-          </p>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">
-
-            <!-- Zone: Your Items -->
-            <div class="cmp-drop-zone" id="dropZoneItems"
-              style="border:2px dashed var(--border);border-radius:14px;padding:16px;background:var(--bg);transition:border-color .15s,background .15s;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                <span style="font-size:11.5px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">Ваши позиции</span>
-                <button onclick="document.getElementById('priceListFileItems').click()"
-                  style="font-size:11.5px;padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:white;cursor:pointer;color:var(--text-dim);">
-                  📂 Файл
-                </button>
-              </div>
-              <div id="itemsFileLabel"
-                style="min-height:90px;display:flex;align-items:center;justify-content:center;
-                       color:var(--text-dim);font-size:12.5px;border-radius:8px;
-                       border:1px dashed var(--border);background:white;padding:12px;text-align:center;">
-                Перетащите или выберите файл (.xlsx / .csv)<br>
-                <span style="font-size:11px;margin-top:4px;display:block;">Колонки: наименование, кол-во, код, марка, модель</span>
-              </div>
-              <input type="file" id="priceListFileItems" accept=".xlsx,.xls,.csv" style="display:none;">
-            </div>
-
-            <!-- Zone: Catalog -->
-            <div class="cmp-drop-zone" id="dropZoneCatalog"
-              style="border:2px dashed var(--border);border-radius:14px;padding:16px;background:var(--bg);transition:border-color .15s,background .15s;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                <span style="font-size:11.5px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">Каталог</span>
-                <button onclick="document.getElementById('priceListFileCatalog').click()"
-                  style="font-size:11.5px;padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:white;cursor:pointer;color:var(--text-dim);">
-                  📂 Файл
-                </button>
-              </div>
-              <div id="catalogFileLabel"
-                style="min-height:90px;display:flex;align-items:center;justify-content:center;
-                       color:var(--text-dim);font-size:12.5px;border-radius:8px;
-                       border:1px dashed var(--border);background:white;padding:12px;text-align:center;">
-                Перетащите или выберите файл (.xlsx / .csv)<br>
-                <span style="font-size:11px;margin-top:4px;display:block;">Гос. каталог или прайс поставщика</span>
-              </div>
-              <input type="file" id="priceListFileCatalog" accept=".xlsx,.xls,.csv" style="display:none;">
+          <div id="catalogMatcherEmbedWrap" style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff;margin-bottom:18px;min-height:720px;">
+            <iframe id="catalogMatcherFrame" title="Catalog Matcher"
+              src="http://localhost:3000"
+              style="width:100%;height:78vh;min-height:720px;border:0;display:block;background:#f9fafb;"></iframe>
+            <div id="catalogMatcherEmbedHint" style="display:none;padding:28px 20px;text-align:center;color:var(--text-dim);font-size:13px;line-height:1.5;">
+              Catalog Matcher не запущен.<br>
+              В папке проекта выполните <b>start-catalog-matcher.bat</b> (Docker: UI :3000, API :8000), затем нажмите «Обновить».
             </div>
           </div>
 
-          <div style="display:flex;justify-content:center;margin-bottom:28px;">
-            <button class="btn btn-primary" id="runCatalogMatchBtn" style="padding:10px 36px;font-size:14px;font-weight:700;">
-              Подобрать по каталогу →
-            </button>
-          </div>
-          <div id="catalogMatchResultsWrap"></div>
+          <details id="catalogLocalFallback" style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff;margin-bottom:12px;">
+            <summary style="cursor:pointer;font-size:13px;font-weight:700;color:var(--text);">Локальный fallback (без Docker)</summary>
+            <p style="font-size:12.5px;color:var(--text-dim);margin:12px 0 16px;">
+              Быстрый подбор в браузере: загрузите перечень и каталог — до 3 вариантов на позицию.
+            </p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">
+              <div class="cmp-drop-zone" id="dropZoneItems"
+                style="border:2px dashed var(--border);border-radius:14px;padding:16px;background:var(--bg);transition:border-color .15s,background .15s;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                  <span style="font-size:11.5px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">Ваши позиции</span>
+                  <button onclick="document.getElementById('priceListFileItems').click()"
+                    style="font-size:11.5px;padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:white;cursor:pointer;color:var(--text-dim);">
+                    📂 Файл
+                  </button>
+                </div>
+                <div id="itemsFileLabel"
+                  style="min-height:90px;display:flex;align-items:center;justify-content:center;
+                         color:var(--text-dim);font-size:12.5px;border-radius:8px;
+                         border:1px dashed var(--border);background:white;padding:12px;text-align:center;">
+                  Перетащите или выберите файл (.xlsx / .csv)<br>
+                  <span style="font-size:11px;margin-top:4px;display:block;">Колонки: наименование, кол-во, код, марка, модель</span>
+                </div>
+                <input type="file" id="priceListFileItems" accept=".xlsx,.xls,.csv" style="display:none;">
+              </div>
+              <div class="cmp-drop-zone" id="dropZoneCatalog"
+                style="border:2px dashed var(--border);border-radius:14px;padding:16px;background:var(--bg);transition:border-color .15s,background .15s;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                  <span style="font-size:11.5px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">Каталог</span>
+                  <button onclick="document.getElementById('priceListFileCatalog').click()"
+                    style="font-size:11.5px;padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:white;cursor:pointer;color:var(--text-dim);">
+                    📂 Файл
+                  </button>
+                </div>
+                <div id="catalogFileLabel"
+                  style="min-height:90px;display:flex;align-items:center;justify-content:center;
+                         color:var(--text-dim);font-size:12.5px;border-radius:8px;
+                         border:1px dashed var(--border);background:white;padding:12px;text-align:center;">
+                  Перетащите или выберите файл (.xlsx / .csv)<br>
+                  <span style="font-size:11px;margin-top:4px;display:block;">Гос. каталог или прайс поставщика</span>
+                </div>
+                <input type="file" id="priceListFileCatalog" accept=".xlsx,.xls,.csv" style="display:none;">
+              </div>
+            </div>
+            <div style="display:flex;justify-content:center;margin-bottom:16px;">
+              <button class="btn btn-primary" id="runCatalogMatchBtn" style="padding:10px 36px;font-size:14px;font-weight:700;">
+                Подобрать по каталогу →
+              </button>
+            </div>
+            <div id="catalogMatchResultsWrap"></div>
+          </details>
         </div>
 
         <div id="priceListPreview" style="display:none;"></div>
         <input type="file" id="priceListFile" accept=".xlsx,.xls,.csv" style="display:none;">
+        <!-- hidden stubs so old bridge selectors don't break if referenced -->
+        <select id="catalogMatcherProjectSelect" style="display:none;" aria-hidden="true"><option value="">—</option></select>
+        <div id="catalogMatcherSourceList" style="display:none;" aria-hidden="true"></div>
+        <button type="button" id="catalogMatcherRunProjectBtn" style="display:none;" aria-hidden="true"></button>
       </div>
 
       <!-- ===================== PHOTO QA MODULE ===================== -->

@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npx next *)",
+      "PowerShell(net stop *)",
+      "PowerShell(Stop-Service *)",
+      "PowerShell(docker compose ps *)",
+      "PowerShell(curl *)",
+      "PowerShell(Invoke-WebRequest -Uri http://localhost:8000/health -UseBasicParsing | Select-Object -Property StatusCode, Content)",
+      "PowerShell(docker compose restart *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}

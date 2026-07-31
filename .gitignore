@@ -16,8 +16,13 @@ functions/node_modules/
 config.local.js
 firebase-deploy/public/config.local.js
 
-# Nested repo — lives at github.com/Eldar0904/catalog-matcher (own remote)
-catalog-matcher/
+# Catalog Matcher (GoodsProgram) local env / build artifacts — app code is tracked
+catalog-matcher/**/node_modules/
+catalog-matcher/**/.next/
+catalog-matcher/**/__pycache__/
+catalog-matcher/**/.venv/
+catalog-matcher/backend/.env
+catalog-matcher/frontend/.env.local
 
 # OS / editor cruft
 .DS_Store
