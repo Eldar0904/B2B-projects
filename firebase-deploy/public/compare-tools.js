@@ -885,21 +885,29 @@ document.getElementById('runCatalogMatchBtn').addEventListener('click', function
   renderCatalogMatch();
 });
 
-// -- Catalog Matcher bridge (GoodsProgram Docker: API :8000, UI :3000) --
+// -- Catalog Matcher bridge (local Docker only; safe on Firebase Hosting) --
 var _cmProjects = [];
+
+function isCatalogMatcherLocalHost() {
+  var h = (location.hostname || '').toLowerCase();
+  return h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '';
+}
 
 function catalogMatcherBase() {
   var el = document.getElementById('catalogMatcherApiBase');
-  var base = (el && el.value ? el.value : 'http://localhost:8000').replace(/\/$/, '');
-  // Accept either "http://localhost:8000" or ".../api"
+  var fallback = isCatalogMatcherLocalHost() ? 'http://localhost:8000' : '';
+  var base = (el && el.value ? el.value : fallback).replace(/\/$/, '');
   if (base.endsWith('/api')) base = base.slice(0, -4);
+  if (!isCatalogMatcherLocalHost()) return base;
   try { localStorage.setItem('catalogMatcher.apiBase', base); } catch (e) {}
   return base;
 }
 
 function catalogMatcherUiBase() {
   var el = document.getElementById('catalogMatcherUiBase');
-  var ui = (el && el.value ? el.value : 'http://localhost:3000').replace(/\/$/, '');
+  var fallback = isCatalogMatcherLocalHost() ? 'http://localhost:3000' : '';
+  var ui = (el && el.value ? el.value : fallback).replace(/\/$/, '');
+  if (!isCatalogMatcherLocalHost()) return ui;
   try { localStorage.setItem('catalogMatcher.uiBase', ui); } catch (e) {}
   return ui;
 }
@@ -912,31 +920,42 @@ function setCatalogMatcherStatus(text, isError) {
 }
 
 function setCatalogMatcherEmbedOnline(online) {
+  var wrap = document.getElementById('catalogMatcherEmbedWrap');
   var frame = document.getElementById('catalogMatcherFrame');
   var hint = document.getElementById('catalogMatcherEmbedHint');
+  if (wrap) wrap.style.display = online ? 'block' : 'none';
   if (frame) frame.style.display = online ? 'block' : 'none';
-  if (hint) hint.style.display = online ? 'none' : 'block';
+  if (hint) hint.style.display = online ? 'none' : (isCatalogMatcherLocalHost() ? 'block' : 'none');
 }
 
 function syncCatalogMatcherFrame() {
+  if (!isCatalogMatcherLocalHost()) return;
   var ui = catalogMatcherUiBase();
+  // Never point the live HTTPS site at http://localhost (mixed content / broken UI).
+  if (!/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(ui)) return;
   var frame = document.getElementById('catalogMatcherFrame');
   var link = document.getElementById('openCatalogMatcherUi');
   if (link) link.href = ui;
   if (frame) {
-    var next = ui + (ui.indexOf('?') >= 0 ? '&' : '?') + '_ts=' + Date.now();
-    // Only reload if origin/path changed or forced refresh — avoid wipe on every status poll
     var current = frame.getAttribute('data-ui-base') || '';
     if (current !== ui) {
       frame.setAttribute('data-ui-base', ui);
       frame.src = ui;
     } else {
-      frame.src = next;
+      frame.src = ui + (ui.indexOf('?') >= 0 ? '&' : '?') + '_ts=' + Date.now();
     }
   }
 }
 
 async function refreshCatalogMatcherBridge() {
+  if (!isCatalogMatcherLocalHost()) {
+    setCatalogMatcherStatus(
+      'Сайт на Firebase Hosting: полный Catalog Matcher (Docker) здесь недоступен. Используйте подбор Excel ниже — или откройте дашборд локально (localhost:5500) с запущенным Matcher.'
+    );
+    setCatalogMatcherEmbedOnline(false);
+    return;
+  }
+
   var base = catalogMatcherBase();
   var ui = catalogMatcherUiBase();
   var link = document.getElementById('openCatalogMatcherUi');
@@ -963,7 +982,7 @@ async function refreshCatalogMatcherBridge() {
   } catch (err) {
     setCatalogMatcherStatus(
       'Catalog Matcher недоступен (' + (err && err.message ? err.message : err) +
-      '). Запустите start-catalog-matcher.bat (Docker: API :8000, UI :3000).',
+      '). Запустите start-catalog-matcher.bat (API :8000, UI :3000). Пока доступен Excel-подбор ниже.',
       true
     );
     setCatalogMatcherEmbedOnline(false);
@@ -971,27 +990,76 @@ async function refreshCatalogMatcherBridge() {
 }
 
 (function initCatalogMatcherBridge() {
-  var baseInput = document.getElementById('catalogMatcherApiBase');
-  if (!baseInput) return;
   try {
-    var saved = localStorage.getItem('catalogMatcher.apiBase');
-    if (saved) baseInput.value = saved.endsWith('/api') ? saved.slice(0, -4) : saved;
-    var savedUi = localStorage.getItem('catalogMatcher.uiBase');
+    var baseInput = document.getElementById('catalogMatcherApiBase');
+    if (!baseInput) return;
+
+    var local = isCatalogMatcherLocalHost();
+    var controls = document.getElementById('catalogMatcherLocalControls');
+    var urlRow = document.getElementById('catalogMatcherUrlRow');
+    var embedWrap = document.getElementById('catalogMatcherEmbedWrap');
+    var hint = document.getElementById('catalogMatcherModeHint');
+    var fallback = document.getElementById('catalogLocalFallback');
+    var frame = document.getElementById('catalogMatcherFrame');
+    var link = document.getElementById('openCatalogMatcherUi');
+
+    if (controls) controls.style.display = local ? 'flex' : 'none';
+    if (urlRow) urlRow.style.display = local ? 'flex' : 'none';
+    if (embedWrap) embedWrap.style.display = 'none';
+    if (hint) {
+      hint.textContent = local
+        ? 'Локальный режим: Docker Catalog Matcher (API :8000, UI :3000). Запуск: start-catalog-matcher.bat'
+        : 'На Firebase Hosting полный Matcher недоступен. Используйте Excel-подбор ниже. Для Docker откройте дашборд локально.';
+    }
+    if (fallback) fallback.open = true;
+
+    // Public pages must never reference loopback URLs (Chrome Private Network Access).
+    if (frame) {
+      frame.removeAttribute('src');
+      try { frame.src = 'about:blank'; } catch (e) {}
+    }
+    if (link) link.removeAttribute('href');
+
+    if (!local) {
+      try {
+        localStorage.removeItem('catalogMatcher.apiBase');
+        localStorage.removeItem('catalogMatcher.uiBase');
+      } catch (e) {}
+      if (baseInput) baseInput.value = '';
+      var uiClear = document.getElementById('catalogMatcherUiBase');
+      if (uiClear) uiClear.value = '';
+      setCatalogMatcherStatus('Режим сайта: браузерный Excel-подбор. Полный Matcher — только на localhost.');
+      return;
+    }
+
+    // Local defaults — set only after confirming we are on loopback.
     var uiInput = document.getElementById('catalogMatcherUiBase');
-    if (savedUi && uiInput) uiInput.value = savedUi;
-  } catch (e) {}
-  var refreshBtn = document.getElementById('catalogMatcherRefreshBtn');
-  if (refreshBtn) refreshBtn.addEventListener('click', refreshCatalogMatcherBridge);
-  var uiInput = document.getElementById('catalogMatcherUiBase');
-  if (uiInput) uiInput.addEventListener('change', function() {
-    catalogMatcherUiBase();
-    syncCatalogMatcherFrame();
-  });
-  if (baseInput) baseInput.addEventListener('change', function() {
-    catalogMatcherBase();
+    try {
+      var saved = localStorage.getItem('catalogMatcher.apiBase');
+      baseInput.value = (saved && !saved.endsWith('/api') ? saved : (saved ? saved.slice(0, -4) : 'http://localhost:8000'));
+      if (!baseInput.value) baseInput.value = 'http://localhost:8000';
+      var savedUi = localStorage.getItem('catalogMatcher.uiBase');
+      if (uiInput) uiInput.value = savedUi || 'http://localhost:3000';
+    } catch (e) {
+      baseInput.value = 'http://localhost:8000';
+      if (uiInput) uiInput.value = 'http://localhost:3000';
+    }
+    if (link) link.href = uiInput && uiInput.value ? uiInput.value : 'http://localhost:3000';
+
+    var refreshBtn = document.getElementById('catalogMatcherRefreshBtn');
+    if (refreshBtn) refreshBtn.addEventListener('click', refreshCatalogMatcherBridge);
+    if (uiInput) uiInput.addEventListener('change', function() {
+      catalogMatcherUiBase();
+      syncCatalogMatcherFrame();
+    });
+    if (baseInput) baseInput.addEventListener('change', function() {
+      catalogMatcherBase();
+      refreshCatalogMatcherBridge();
+    });
     refreshCatalogMatcherBridge();
-  });
-  refreshCatalogMatcherBridge();
+  } catch (err) {
+    console.warn('Catalog Matcher bridge init failed:', err);
+  }
 })();
 
 // -- Drag-and-drop (legacy match/completeness zones if present) -------

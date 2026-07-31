@@ -7,7 +7,14 @@ GoodsProgram перенесён в этот репозиторий как **`cat
 
 ---
 
-## Быстрый старт
+## Прод (Firebase Hosting) vs локально
+
+| Где | Что работает |
+|-----|----------------|
+| **Firebase** (`*.web.app`) | Только Excel-подбор в браузере. iframe на `localhost:3000` **нельзя** (HTTPS→HTTP + нет Docker на Hosting). |
+| **localhost:5500** | Полный Matcher в iframe, если запущены API `:8000` и UI `:3000`. |
+
+После деплоя вкладка больше не ломает сайт: на проде скрывает Docker-блок и оставляет Excel-fallback.
 
 1. Docker Desktop должен быть запущен.
 2. Из корня B2B-projects:
