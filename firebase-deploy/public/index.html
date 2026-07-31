@@ -647,21 +647,32 @@
       <!-- ===================== CATALOG MATCHING (GoodsProgram / Docker) ===================== -->
       <div class="view" id="view-compare">
         <div id="cmpTabCatalog">
-          <div id="catalogMatcherApiBridge" style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px;background:#f8fafc;">
+          <!-- Shown only on Firebase / non-local hosts -->
+          <div id="catalogMatcherHostedNotice" style="display:none;border:1px solid var(--border);border-radius:12px;padding:28px 24px;background:#fff;text-align:center;">
+            <div style="font-size:15px;font-weight:700;margin-bottom:8px;">Подбор по каталогу</div>
+            <p style="font-size:13px;color:var(--text-dim);margin:0;line-height:1.55;max-width:520px;margin-left:auto;margin-right:auto;">
+              Полный Catalog Matcher работает только на локальном компьютере
+              (API <code>:8000</code>, UI <code>:3000</code>).
+              Запустите <code>start-catalog-matcher.bat</code> и откройте дашборд на
+              <code>localhost:5500</code>.
+            </p>
+          </div>
+
+          <div id="catalogMatcherApiBridge" style="display:none;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px;background:#f8fafc;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
               <div>
                 <div style="font-size:13px;font-weight:700;">Подбор по каталогу — Catalog Matcher</div>
                 <div id="catalogMatcherModeHint" style="font-size:12px;color:var(--text-dim);margin-top:3px;">
-                  Catalog Matcher запускается локально (API :8000, UI :3000).
+                  Локальный режим: API :8000, UI :3000. Запуск: start-catalog-matcher.bat
                 </div>
               </div>
-              <div id="catalogMatcherLocalControls" style="display:none;gap:8px;align-items:center;flex-wrap:wrap;">
+              <div id="catalogMatcherLocalControls" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                 <a id="openCatalogMatcherUi" href="#" target="_blank" rel="noopener"
                   style="font-size:12px;font-weight:600;color:var(--accent);white-space:nowrap;">Открыть в новой вкладке →</a>
                 <button type="button" class="btn btn-ghost" id="catalogMatcherRefreshBtn" style="font-size:12px;">Обновить</button>
               </div>
             </div>
-            <div id="catalogMatcherUrlRow" style="display:none;flex-wrap:wrap;gap:8px;align-items:center;">
+            <div id="catalogMatcherUrlRow" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
               <input id="catalogMatcherApiBase" type="text" value=""
                 style="flex:1;min-width:200px;font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;"
                 placeholder="API base (local only)" title="Корень backend (без /api)" autocomplete="off" />
@@ -678,7 +689,7 @@
               style="width:100%;height:78vh;min-height:720px;border:0;display:block;background:#f9fafb;"></iframe>
             <div id="catalogMatcherEmbedHint" style="display:none;padding:28px 20px;text-align:center;color:var(--text-dim);font-size:13px;line-height:1.5;">
               Catalog Matcher не запущен.<br>
-              В папке проекта выполните <b>start-catalog-matcher.bat</b> (UI :3000, API :8000), затем нажмите «Обновить».
+              Выполните <b>start-catalog-matcher.bat</b>, затем нажмите «Обновить».
             </div>
           </div>
         </div>
@@ -2805,7 +2816,7 @@ function seedTeamIfNeeded(){
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="supplier-ai.js"></script>
-<script src="compare-tools.js"></script>
+<script src="compare-tools.js?v=20260731b"></script>
 <script src="act-generator.js"></script>
 <script src="photo-qa.js"></script>
 </body>

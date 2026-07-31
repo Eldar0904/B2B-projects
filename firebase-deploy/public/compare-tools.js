@@ -995,42 +995,48 @@ async function refreshCatalogMatcherBridge() {
     if (!baseInput) return;
 
     var local = isCatalogMatcherLocalHost();
+    var hosted = document.getElementById('catalogMatcherHostedNotice');
+    var bridge = document.getElementById('catalogMatcherApiBridge');
     var controls = document.getElementById('catalogMatcherLocalControls');
     var urlRow = document.getElementById('catalogMatcherUrlRow');
     var embedWrap = document.getElementById('catalogMatcherEmbedWrap');
     var hint = document.getElementById('catalogMatcherModeHint');
     var frame = document.getElementById('catalogMatcherFrame');
     var link = document.getElementById('openCatalogMatcherUi');
+    var statusEl = document.getElementById('catalogMatcherApiStatus');
 
-    if (controls) controls.style.display = local ? 'flex' : 'none';
-    if (urlRow) urlRow.style.display = local ? 'flex' : 'none';
-    if (embedWrap) embedWrap.style.display = 'none';
-    if (hint) {
-      hint.textContent = local
-        ? 'Локальный режим: Docker Catalog Matcher (API :8000, UI :3000). Запуск: start-catalog-matcher.bat'
-        : 'На Firebase Hosting Matcher недоступен. Откройте дашборд локально с start-catalog-matcher.bat.';
+    // Public Hosting: calm notice only — never fetch localhost (Chrome blocks it).
+    if (!local) {
+      if (hosted) hosted.style.display = 'block';
+      if (bridge) bridge.style.display = 'none';
+      if (embedWrap) embedWrap.style.display = 'none';
+      if (statusEl) { statusEl.textContent = ''; statusEl.style.color = 'var(--text-dim)'; }
+      if (frame) {
+        frame.removeAttribute('src');
+        try { frame.src = 'about:blank'; } catch (e) {}
+      }
+      if (link) link.removeAttribute('href');
+      try {
+        localStorage.removeItem('catalogMatcher.apiBase');
+        localStorage.removeItem('catalogMatcher.uiBase');
+      } catch (e) {}
+      return;
     }
 
-    // Public pages must never reference loopback URLs (Chrome Private Network Access).
+    if (hosted) hosted.style.display = 'none';
+    if (bridge) bridge.style.display = 'block';
+    if (controls) controls.style.display = 'flex';
+    if (urlRow) urlRow.style.display = 'flex';
+    if (embedWrap) embedWrap.style.display = 'none';
+    if (hint) {
+      hint.textContent = 'Локальный режим: API :8000, UI :3000. Запуск: start-catalog-matcher.bat';
+    }
     if (frame) {
       frame.removeAttribute('src');
       try { frame.src = 'about:blank'; } catch (e) {}
     }
     if (link) link.removeAttribute('href');
 
-    if (!local) {
-      try {
-        localStorage.removeItem('catalogMatcher.apiBase');
-        localStorage.removeItem('catalogMatcher.uiBase');
-      } catch (e) {}
-      if (baseInput) baseInput.value = '';
-      var uiClear = document.getElementById('catalogMatcherUiBase');
-      if (uiClear) uiClear.value = '';
-      setCatalogMatcherStatus('Режим сайта: Catalog Matcher только на localhost.');
-      return;
-    }
-
-    // Local defaults — set only after confirming we are on loopback.
     var uiInput = document.getElementById('catalogMatcherUiBase');
     try {
       var saved = localStorage.getItem('catalogMatcher.apiBase');
