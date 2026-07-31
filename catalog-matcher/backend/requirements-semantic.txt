@@ -1,0 +1,2 @@
+# Semantic matching (stage 2). Adds ~500MB model download on first use.
+sentence-transformers>=3.0.0

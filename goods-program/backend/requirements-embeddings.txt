@@ -1,0 +1,16 @@
+# Optional: real multilingual embedding model + cross-encoder reranker for
+# production use. Requires network access to huggingface.co to download
+# model weights on first run. Install with (in this order - see
+# backend/Dockerfile for why the CPU-only torch line matters: a plain
+# `pip install -r requirements-embeddings.txt` on its own pulls the default
+# CUDA-bundled torch build, several GB of NVIDIA packages this project's
+# GPU-less container has no use for):
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   pip install -r requirements.txt -r requirements-embeddings.txt
+# Then set EMBEDDING_PROVIDER=sentence-transformers and/or
+# RERANKER_PROVIDER=cross_encoder in .env.
+sentence-transformers==3.3.1
+
+# Optional: LLM tie-breaker for ambiguous reranking cases (Phase 6).
+# Requires ANTHROPIC_API_KEY and ENABLE_LLM_RERANKER_FOR_HARD_CASES=true.
+anthropic==0.40.0

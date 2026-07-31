@@ -1,0 +1,3 @@
+# Semantic matching (optional for local dev without ML stack):
+#   pip install -r requirements-semantic.txt
+psycopg2-binary==2.9.9

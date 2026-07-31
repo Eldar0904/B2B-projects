@@ -11,7 +11,8 @@ Internal dashboard for managing classroom/hall fitout projects (furniture, AV, l
   - `firebase.json`, `.firebaserc`, `firestore.rules`, `firestore.indexes.json`
   - `public/index.html` + `public/supplier-ai.js` — deployable copies, kept in sync with the root files above.
   - Firebase project ID: `b2b-projects-a7f51`.
-- `supabase/storage-setup.sql` — one-time SQL to create the `project-documents` Storage bucket (free tier, no card).
+- `goods-program/` — Goods Program (FastAPI + Next.js), копия PINE GoodsProgram; запуск без Docker: `start-goods-program.bat`.
+- `goods-matching/` — статический мастер подбора для iframe в дашборде (синхрон: `sync-goods-matching-ui.bat`).
 - `Поставщики_по_кабинетам.xlsx`, `Эстрада_поставщики.xlsx` — sourcing/supplier research spreadsheets for specific rooms/halls.
 
 ## Two copies, always in sync
@@ -19,6 +20,17 @@ Internal dashboard for managing classroom/hall fitout projects (furniture, AV, l
 Every edit to the dashboard or the supplier-search component must be applied to **both**:
 1. the root file (`B2B_Fitout_Dashboard_Prototype.html` / `supplier-ai.js`)
 2. the deploy copy (`firebase-deploy/public/index.html` / `firebase-deploy/public/supplier-ai.js`)
+
+## Подбор по каталогу (Goods Program)
+
+Код скопирован в `goods-program/` (источник: `Documents\PINE\GoodsProgram`). В дашборде — мастер `goods-matching/` (iframe) + API на порту **8000**.
+
+1. **Python 3.11+** на Windows.
+2. Запуск API: двойной клик `start-goods-program.bat` (окно не закрывать).
+3. Дашборд локально (`start-dashboard.bat` или Firebase Hosting) → **Подбор по каталогу** → **Проверить API**.
+4. После обновления мастера в PINE: `sync-goods-matching-ui.bat` (копирует `frontend/public/matching` в `goods-matching/` и в `firebase-deploy/public/`).
+
+Опционально полный UI: `cd goods-program\frontend` → `npm install` → `npm run dev` (порт 3000).
 
 ## Deploying
 

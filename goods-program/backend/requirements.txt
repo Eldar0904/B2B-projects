@@ -1,0 +1,40 @@
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+SQLAlchemy==2.0.36
+psycopg2-binary==2.9.10
+pydantic==2.10.3
+pydantic-settings==2.7.0
+pandas==2.2.3
+openpyxl==3.1.5
+python-multipart==0.0.19
+pytest==8.3.4
+
+# Phase 2 — search
+rank-bm25==0.2.2
+rapidfuzz==3.10.1
+qdrant-client==1.18.0
+scikit-learn==1.5.2
+numpy==1.26.4
+
+# Optional (Phase 2 production embeddings): pip install -r requirements-embeddings.txt
+# Not installed by default because it pulls in torch (~700MB) and requires
+# network access to huggingface.co to download model weights, which this
+# sandbox does not have. The TF-IDF fallback in embeddings.py needs neither.
+
+# Phase 6/Task 3 — Gemini LLM reranker + auto-match (app/services/search/reranking.py).
+# anthropic is NOT listed here on purpose - that provider has never been
+# enabled, so it stays a true lazy/optional import. google-genai IS listed
+# because it's the provider actually being turned on - see config.py's
+# GEMINI_API_KEY / LLM_RERANKER_PROVIDER / ENABLE_LLM_RERANKER_FOR_HARD_CASES
+# / ENABLE_LLM_AUTO_MATCH.
+#
+# Pinned to 2.8.0, NOT the latest release, on purpose: google-genai>=2.9.0
+# requires pydantic>=2.12.5, which conflicts with this project's
+# pydantic==2.10.3 (itself constrained by fastapi==0.115.6 and
+# qdrant-client==1.18.0's own pydantic ranges) - `pip install` fails the
+# whole build with ResolutionImpossible otherwise. 2.8.0 is the newest
+# version whose own pydantic requirement (>=2.9.0) still fits. Bumping
+# pydantic instead was deliberately avoided here - untangling four
+# packages' pinned versions at once is a bigger, riskier change than
+# picking an older, still-current Gemini SDK release.
+google-genai==2.8.0

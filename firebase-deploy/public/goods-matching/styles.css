@@ -1,0 +1,452 @@
+/* Visual refresh (HANDOFF.md section 14) to match the redesigned Next.js
+   shell - selectors, structure, and every id app.js reads are UNCHANGED;
+   only colors/radius/spacing were touched. Tokens below mirror the
+   Tailwind classes used in the rest of the app (blue-600 accent,
+   gray-200/300 borders, rounded-lg) so the wizard - loaded in an iframe -
+   no longer looks like a visually separate tool. */
+
+:root {
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-bg: #eff6ff;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --text: #111827;
+  --text-muted: #6b7280;
+  --text-faint: #9ca3af;
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --danger-border: #fca5a5;
+  --radius: 10px;
+  --radius-sm: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 24px;
+  font-family: system-ui, sans-serif;
+  color: var(--text);
+}
+
+.page-title {
+  margin: 0 0 20px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.drop-row {
+  display: flex;
+  gap: 16px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.drop-zone {
+  flex: 1;
+  min-height: 180px;
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  background: #fafafa;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.drop-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.drop-zone.has-file {
+  border-style: solid;
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.drop-zone.disabled {
+  opacity: 0.55;
+  pointer-events: none;
+  cursor: default;
+}
+
+.catalog-column,
+.dest-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* "No resume" fix badge - already-decided items shown in the auto/no-match
+   detail views after resuming a previous run (or persisted mid-session via
+   /decisions) get this instead of being silently indistinguishable from a
+   fresh classification. Same visual family as .detail-warn/.detail-rejected. */
+.detail-resumed {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 12px;
+}
+
+.catalog-version-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.catalog-version-picker label {
+  color: var(--text-muted);
+}
+
+.catalog-version-picker select {
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: #fff;
+  font-size: 14px;
+}
+
+.drop-zone-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.drop-zone-hint {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.drop-zone-file {
+  margin-top: 10px;
+  font-size: 14px;
+  word-break: break-all;
+}
+
+.drop-zone-meta {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.actions {
+  max-width: 960px;
+  margin: 20px auto 0;
+  text-align: center;
+}
+
+.match-progress {
+  margin-bottom: 16px;
+}
+
+.match-progress progress {
+  width: 100%;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.match-progress-text {
+  display: block;
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.input-hint {
+  margin-top: 10px;
+  color: var(--danger);
+  font-size: 14px;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: #fff;
+  color: var(--text);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+button:hover {
+  background: #f9fafb;
+  border-color: var(--text-faint);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Primary actions - the ones that move the workflow forward. Matches the
+   Next.js shell's blue-600 buttons exactly. */
+#runMatchBtn,
+#previewContinueBtn,
+#saveBtn {
+  padding: 10px 28px;
+  font-size: 16px;
+  font-weight: 500;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+#runMatchBtn:hover,
+#previewContinueBtn:hover,
+#saveBtn:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.wizard-page {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.wizard-counter {
+  text-align: center;
+  margin: 0 0 24px;
+  font-size: 16px;
+  color: var(--text-muted);
+}
+
+.wizard-product {
+  text-align: left;
+  margin: 0 0 24px;
+  font-size: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  background: #fafafa;
+}
+
+.wizard-prompt {
+  text-align: center;
+  margin: 0 0 16px;
+  font-size: 16px;
+  color: var(--text-muted);
+}
+
+.wizard-options {
+  text-align: left;
+}
+
+.wizard-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 0 0 10px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  font-size: 16px;
+}
+
+.wizard-option:hover {
+  background: #f9fafb;
+  border-color: var(--border-strong);
+}
+
+.wizard-option.selected {
+  font-weight: 600;
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+/* "Пропустить остальные" is not one of the catalog choices - it abandons
+   the whole remaining queue. Set apart visually and pushed down so it is
+   not clicked by reflex while working through candidates. */
+.wizard-option-skip {
+  margin-top: 18px;
+  border-style: dashed;
+  border-color: var(--border-strong);
+  color: var(--text-muted);
+}
+
+.wizard-option-skip:hover {
+  border-color: var(--text-faint);
+  background: #fafafa;
+}
+
+.wizard-product-line {
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.wizard-product-desc,
+.wizard-product-meta,
+.detail-desc {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.wizard-product-score {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.wizard-option-title {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.wizard-option .wizard-product-desc,
+.wizard-option .wizard-product-meta {
+  margin-top: 6px;
+}
+
+.detail-match {
+  margin-top: 8px;
+}
+
+.detail-price,
+.wizard-product-price {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.wizard-product-price-missing {
+  font-weight: 400;
+  color: var(--text-faint);
+}
+
+.wizard-actions {
+  text-align: center;
+  margin-top: 28px;
+}
+
+#wizardBackBtn {
+  padding: 8px 24px;
+  font-size: 16px;
+}
+
+.summary-page {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
+  text-align: center;
+}
+
+.summary-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  width: 100%;
+  margin: 0 auto 24px;
+}
+
+.summary-buttons button {
+  width: 100%;
+  padding: 14px 12px;
+  font-size: 15px;
+}
+
+.summary-actions {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 24px;
+}
+
+#saveBtn {
+  padding: 12px 48px;
+}
+
+.detail-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding-bottom: 88px;
+}
+
+.detail-list {
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+}
+
+.detail-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  text-align: left;
+  font-size: 15px;
+}
+
+.detail-code {
+  font-weight: 600;
+}
+
+.detail-back-fixed {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 100;
+  padding: 10px 24px;
+  font-size: 16px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Auto-matched bucket audit (HANDOFF.md sections 8 / 10.3 / 10.4) - the
+   "Магнитная рыбалка" -> "Мешалка магнитная" false positive that motivated
+   this: a suspicious-overlap warning, an explicit reject action, and a
+   clearly distinct state once a reviewer has actually rejected one. */
+
+.detail-warn {
+  display: inline-block;
+  margin-top: 6px;
+  color: #92600a;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.detail-rejected {
+  display: inline-block;
+  margin-top: 6px;
+  color: var(--danger);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.detail-actions-row {
+  margin-top: 10px;
+}
+
+.detail-action {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+.detail-action.detail-reject {
+  color: var(--danger);
+  border-color: var(--danger-border);
+}
+
+.detail-action.detail-reject:hover {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+}
+
+.detail-action.detail-undo {
+  color: var(--text);
+}
+
+/* An overridden item's <li> itself gets a subtle tint so it stands out in
+   the list even before reading the badge text. */
+.detail-item:has(.detail-rejected) {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+}

@@ -1,0 +1,14 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+*.db
+*.db-journal
+qdrant_storage/
+ml_models/
+.env
+.env.*
+Dockerfile
+.dockerignore

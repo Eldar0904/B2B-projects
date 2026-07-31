@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Подбор</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- При необходимости укажите адрес API до подключения app.js:
+  <script>window.MATCHING_API_BASE = 'http://127.0.0.1:8080/api/v1/matching';</script>
+  -->
+  <div id="screenInput">
+    <h1 class="page-title">Подбор</h1>
+
+    <div class="drop-row">
+      <div class="dest-column">
+        <!-- "Continue a previous run" (NEXT_STEPS.md item 6, "no resume"
+             fix, Part B): picking one here skips uploading a new file and
+             reopens an existing destination upload instead. Already-decided
+             items are never re-asked - see standalone_matching.py's
+             _resume_record_for_decided. Left at the default option,
+             everything below behaves exactly as before. -->
+        <div class="catalog-version-picker">
+          <label for="resumeSelect">Продолжить предыдущий подбор</label>
+          <select id="resumeSelect">
+            <option value="">Загрузить новый файл заявки...</option>
+          </select>
+        </div>
+        <div class="drop-zone" id="destDropZone" data-kind="destination">
+          <div class="drop-zone-title">Заявка</div>
+          <div class="drop-zone-hint">Выберите файл или перетащите сюда</div>
+          <div class="drop-zone-file" id="destFileName"></div>
+          <div class="drop-zone-meta" id="destFileMeta"></div>
+          <input type="file" id="destExcelFile" accept=".xlsx,.xlsm" hidden>
+        </div>
+      </div>
+
+      <div class="catalog-column">
+        <!-- "Use existing catalog" (HANDOFF.md section 4): picking a
+             version here skips re-uploading and re-indexing a catalog
+             that was already ingested by an earlier run. Left at the
+             default option, everything below behaves exactly as before -
+             a fresh file is required and ingested from scratch. -->
+        <div class="catalog-version-picker">
+          <label for="catalogVersionSelect">Каталог из предыдущих загрузок</label>
+          <select id="catalogVersionSelect">
+            <option value="">Загрузить новый файл...</option>
+          </select>
+        </div>
+        <div class="drop-zone" id="catalogDropZone" data-kind="catalog">
+          <div class="drop-zone-title">Каталог</div>
+          <div class="drop-zone-hint">Выберите файл или перетащите сюда</div>
+          <div class="drop-zone-file" id="catalogFileName"></div>
+          <div class="drop-zone-meta" id="catalogFileMeta"></div>
+          <input type="file" id="catalogExcelFile" accept=".xlsx,.xlsm" hidden>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <div id="matchProgressBox" class="match-progress" hidden>
+        <progress id="matchProgressBar" max="100" value="0"></progress>
+        <span id="matchProgressText" class="match-progress-text">0% · 0/0</span>
+      </div>
+      <button type="button" id="runMatchBtn">Начать</button>
+      <p id="inputHint" class="input-hint"></p>
+    </div>
+  </div>
+
+  <div id="screenPreview" hidden>
+    <h2>Предпросмотр итога</h2>
+    <p id="previewStats"></p>
+    <h3>Автоматически (&gt;87%)</h3>
+    <ul id="previewAuto"></ul>
+    <h3>Нужна проверка (78–87%)</h3>
+    <ul id="previewReview"></ul>
+    <h3>Без совпадения (&lt;78%)</h3>
+    <ul id="previewNoMatch"></ul>
+    <p>
+      <button type="button" id="previewContinueBtn">Продолжить</button>
+      <button type="button" id="previewBackBtn">← Назад</button>
+    </p>
+  </div>
+
+  <div id="screenWizard" hidden>
+    <div class="wizard-page">
+      <h1 class="page-title">Ручная проверка</h1>
+      <p class="wizard-counter" id="wizardProgress">1 из 8</p>
+      <div class="wizard-product" id="destLabel"></div>
+      <p class="wizard-prompt">Выберите вариант</p>
+      <div class="wizard-options" id="candidateButtons"></div>
+      <div class="wizard-actions">
+        <button type="button" id="wizardBackBtn">Назад</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="screenSummary" hidden>
+    <div class="summary-page">
+      <h1 class="page-title">Итог подбора</h1>
+      <div class="summary-buttons">
+        <button type="button" id="autoPreviewBtn">авто 0 предосмотр</button>
+        <button type="button" id="manualPreviewBtn">вручную 0 предосмотр</button>
+        <button type="button" id="noMatchPreviewBtn">без совпадения 0 предосмотр</button>
+      </div>
+      <div class="summary-actions">
+        <button type="button" id="saveBtn">Сохранить</button>
+      </div>
+      <p id="saveHint" class="input-hint"></p>
+    </div>
+  </div>
+
+  <div id="screenDetail" hidden>
+    <div class="detail-page">
+      <h1 class="page-title" id="detailTitle">Авто 0</h1>
+      <ul class="detail-list" id="detailList"></ul>
+      <button type="button" id="detailBackBtn" class="detail-back-fixed">Назад</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

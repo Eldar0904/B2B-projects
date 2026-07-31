@@ -24,6 +24,17 @@ catalog-matcher/**/.venv/
 catalog-matcher/backend/.env
 catalog-matcher/frontend/.env.local
 
+# Goods Program — local secrets & build artifacts
+goods-program/backend/.env
+goods-program/**/node_modules/
+goods-program/**/.venv/
+goods-program/**/__pycache__/
+goods-program/**/*.pyc
+goods-program/**/.next/
+goods-program/**/*.db
+goods-program/**/qdrant_storage/
+goods-program/**/uploads_tmp/
+
 # OS / editor cruft
 .DS_Store
 Thumbs.db

@@ -644,6 +644,7 @@
         <div id="resultsWrap"></div>
       </div>
 
+<<<<<<< Updated upstream
       <!-- ===================== CATALOG MATCHING (GoodsProgram / Docker) ===================== -->
       <div class="view" id="view-compare">
         <div id="cmpTabCatalog">
@@ -708,6 +709,36 @@
         <div id="catalogFileLabel" style="display:none;" aria-hidden="true"></div>
         <div id="dropZoneItems" style="display:none;" aria-hidden="true"></div>
         <div id="dropZoneCatalog" style="display:none;" aria-hidden="true"></div>
+=======
+      <!-- ===================== GOODS PROGRAM (Подбор по каталогу) ===================== -->
+      <div class="view" id="view-compare">
+        <div class="card" style="margin-bottom:14px;padding:14px 16px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:15px;font-weight:700;">Подбор по каталогу — Goods Program</div>
+              <p style="font-size:12.5px;color:var(--text-dim);margin:8px 0 0;max-width:720px;line-height:1.5;">
+                Сопоставление заявки с master-каталогом: загрузка Excel, подбор, ревью, экспорт.
+                Код: <code style="font-size:11px;">goods-program/</code> (синхрон с
+                <code style="font-size:11px;">Documents\PINE\GoodsProgram</code>).
+                Запуск API: <code style="font-size:11px;">start-goods-program.bat</code>
+              </p>
+            </div>
+            <a href="#" id="goodsProgramOpenFullBtn" class="btn btn-ghost btn-sm" style="white-space:nowrap;">Открыть Next.js UI →</a>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px;">
+            <label style="font-size:12px;color:var(--text-dim);flex:1;min-width:260px;">
+              API
+              <input id="goodsProgramApiInput" type="text" value="http://localhost:8000/api/v1/matching"
+                style="display:block;width:100%;margin-top:4px;font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;" />
+            </label>
+            <button type="button" class="btn btn-ghost btn-sm" id="goodsProgramRefreshBtn" style="margin-top:18px;">Проверить API</button>
+          </div>
+          <div id="goodsProgramStatus" style="font-size:12px;color:var(--text-dim);margin-top:10px;"></div>
+        </div>
+        <iframe id="goodsProgramFrame" title="Goods Program"
+          src="goods-matching/index.html"
+          style="width:100%;min-height:calc(100vh - 240px);border:1px solid var(--border);border-radius:12px;background:#fff;"></iframe>
+>>>>>>> Stashed changes
       </div>
 
       <!-- ===================== PHOTO QA MODULE ===================== -->
@@ -2816,7 +2847,11 @@ function seedTeamIfNeeded(){
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="supplier-ai.js"></script>
+<<<<<<< Updated upstream
 <script src="compare-tools.js?v=20260731b"></script>
+=======
+<script src="goods-program-bridge.js"></script>
+>>>>>>> Stashed changes
 <script src="act-generator.js"></script>
 <script src="photo-qa.js"></script>
 </body>
