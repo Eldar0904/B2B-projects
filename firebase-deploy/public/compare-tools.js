@@ -950,7 +950,7 @@ function syncCatalogMatcherFrame() {
 async function refreshCatalogMatcherBridge() {
   if (!isCatalogMatcherLocalHost()) {
     setCatalogMatcherStatus(
-      'Сайт на Firebase Hosting: полный Catalog Matcher (Docker) здесь недоступен. Используйте подбор Excel ниже — или откройте дашборд локально (localhost:5500) с запущенным Matcher.'
+      'Сайт на Firebase Hosting: Catalog Matcher здесь недоступен. Откройте дашборд локально (localhost:5500) с запущенным Matcher (start-catalog-matcher.bat).'
     );
     setCatalogMatcherEmbedOnline(false);
     return;
@@ -982,7 +982,7 @@ async function refreshCatalogMatcherBridge() {
   } catch (err) {
     setCatalogMatcherStatus(
       'Catalog Matcher недоступен (' + (err && err.message ? err.message : err) +
-      '). Запустите start-catalog-matcher.bat (API :8000, UI :3000). Пока доступен Excel-подбор ниже.',
+      '). Запустите start-catalog-matcher.bat (API :8000, UI :3000).',
       true
     );
     setCatalogMatcherEmbedOnline(false);
@@ -999,7 +999,6 @@ async function refreshCatalogMatcherBridge() {
     var urlRow = document.getElementById('catalogMatcherUrlRow');
     var embedWrap = document.getElementById('catalogMatcherEmbedWrap');
     var hint = document.getElementById('catalogMatcherModeHint');
-    var fallback = document.getElementById('catalogLocalFallback');
     var frame = document.getElementById('catalogMatcherFrame');
     var link = document.getElementById('openCatalogMatcherUi');
 
@@ -1009,9 +1008,8 @@ async function refreshCatalogMatcherBridge() {
     if (hint) {
       hint.textContent = local
         ? 'Локальный режим: Docker Catalog Matcher (API :8000, UI :3000). Запуск: start-catalog-matcher.bat'
-        : 'На Firebase Hosting полный Matcher недоступен. Используйте Excel-подбор ниже. Для Docker откройте дашборд локально.';
+        : 'На Firebase Hosting Matcher недоступен. Откройте дашборд локально с start-catalog-matcher.bat.';
     }
-    if (fallback) fallback.open = true;
 
     // Public pages must never reference loopback URLs (Chrome Private Network Access).
     if (frame) {
@@ -1028,7 +1026,7 @@ async function refreshCatalogMatcherBridge() {
       if (baseInput) baseInput.value = '';
       var uiClear = document.getElementById('catalogMatcherUiBase');
       if (uiClear) uiClear.value = '';
-      setCatalogMatcherStatus('Режим сайта: браузерный Excel-подбор. Полный Matcher — только на localhost.');
+      setCatalogMatcherStatus('Режим сайта: Catalog Matcher только на localhost.');
       return;
     }
 
